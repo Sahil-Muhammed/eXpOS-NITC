@@ -1,0 +1,15 @@
+alias counter R0;
+counter = 20;
+alias temp1 R1;
+alias counterPlusOne R2;
+alias twiceCounter R3;
+twiceCounter = counter * 2;
+alias twiceCounterPlusOne R4;
+twiceCounterPlusOne = twiceCounter + 1;
+alias temp2 R5;
+alias temp3 R6;
+counterPlusOne = counter + 1;
+temp1 = (counter) * (counterPlusOne);
+temp2 = temp1 * twiceCounterPlusOne;
+// temp3 = temp2 / 6;
+print temp2; 
