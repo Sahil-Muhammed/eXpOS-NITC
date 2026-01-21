@@ -1,0 +1,70 @@
+0
+8
+0
+0
+0
+0
+0
+0
+// check if stuff from stack is valid and correct for write
+// Stack: [fun code, arg1, arg2, arg3, return value, IP+2]
+MOV R0, [SP-5] // this stores the system call number
+EQ R0, "Write"
+JZ R0, <error code logical address>
+MOV R1, [SP-4] // stores the file descriptor
+EQ R1, -2
+JZ R1, <error code logical address>
+
+// if control reaches this point, function code and file desc are correct
+// proceed with saving registers by pushing to stack
+
+// create new stack frame for INT 7
+
+// store the word to be printed in R2
+MOV R2, [SP-3]
+
+// store 5 in R0 (system call number)
+
+MOV R0, 5
+
+// store -2 in R1 (file descriptor number), not needed actually since its stored earlier
+
+MOV R1, -2
+
+// store
+
+PUSH R0
+PUSH R1
+PUSH R2
+
+// push extra for: (i) arg 3, and (ii) return val
+
+PUSH R0
+PUSH R0
+
+INT 7
+
+// pop the frame made earlier
+
+// use R3 to store the return val
+POP R3 
+// pop and ignore arg3
+POP R0
+
+
+// restore register
+
+POP R2
+POP R1
+POP R0
+
+JMP <instruction before RET>
+
+// error code
+MOV [SP-1], -1
+JMP <ret logical address>
+
+// store ret val (R3) from INT 7 in ret val position of user program's stack
+
+MOV [SP-1], R3
+RET
