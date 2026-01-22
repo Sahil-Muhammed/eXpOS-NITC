@@ -1,17 +1,25 @@
-0
-8
-0
-0
-0
-0
-0
-0
-MOV R0, [SP-5] 
-EQ R0, "Write"
-JZ R0, 50
-MOV R1, [SP-4] 
+MOV R0, [SP-5]
+MOV R1, "Write"
+MOV R0, SP
+SUB R0, 5
+MOV R0, [R0]
+EQ R0, R1
+JNZ R0, 38 
+MOV R1, "Heapset"
+MOV R0, SP
+SUB R0, 5
+MOV R0, [R0]
+EQ R0, R1
+JNZ R0, 82 
+MOV R1, "Alloc"
+MOV R0, SP
+SUB R0, 5
+MOV R0, [R0]
+EQ R0, R1
+JNZ R0, 82
+MOV R1, [SP-4]
 EQ R1, -2
-JZ R1, 50
+JZ R1, 74
 MOV R2, [SP-3]
 MOV R0, 5
 MOV R1, -2
@@ -26,8 +34,10 @@ POP R0
 POP R2
 POP R1
 POP R0
-JMP 54
+JMP 84
 MOV [SP-1], -1
-JMP 56
+JMP 84
 MOV [SP-1], R3
+JMP 84
+MOV [SP-1], 0
 RET
