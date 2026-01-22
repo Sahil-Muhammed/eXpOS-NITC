@@ -1,5 +1,0 @@
-load --int=7 $HOME/myexpos/spl/spl_progs/sample_int7.xsm
-load --os $HOME/myexpos/spl/spl_progs/os_startup_stage10.xsm
-load --init $HOME/myexpos/expl/samples/numbersTill100.xsm
-load --library $HOME/myexpos/expl/expl_progs/library_stage11.xsm
-exit
