@@ -1,7 +1,8 @@
 load --int=7 $HOME/myexpos/spl/spl_progs/sample_int7.xsm
-load --os $HOME/myexpos/spl/spl_progs/os_startup_stage12.xsm
-load --init $HOME/myexpos/expl/samples/numbersTill100.xsm
+load --os $HOME/myexpos/spl/spl_progs/os_startup_stage13.xsm
+load --init $HOME/myexpos/expl/samples/Evn100.xsm
 load --library $HOME/myexpos/expl/expl_progs/library_stage11.xsm
 load --idle $HOME/myexpos/expl/samples/stage12_101_200.xsm
-load --int=timer $HOME/myexpos/spl/spl_progs/sample_timer_stage12.xsm
+load --int=timer $HOME/myexpos/spl/spl_progs/sample_timer_stage13_assg.xsm
+load --module 7 $HOME/myexpos/spl/spl_progs/sample_mod7_stage13_assg.xsm
 exit
