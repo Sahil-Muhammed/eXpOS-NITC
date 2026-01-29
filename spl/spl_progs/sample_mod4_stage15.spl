@@ -1,0 +1,25 @@
+alias functionNum R1;
+alias currentPID R2;
+
+if (functionNum == 3) then
+	// acquiring terminal
+	// push all registers used till now in this module
+	multipush(R1, R2, R3);
+	R1 = 8;
+	R2 = currentPID;
+	call MOD_0;
+	// ignore value in R0, but how?!
+	multipop(R1, R2, R3);
+	print R3;
+
+	// releasing terminal;
+	multipush(R1, R2, R3);
+	R1 = 9;
+	R2 = currentPID;
+	call MOD_0;
+	// save value in register R0 (return val), if needed
+	multipop(R1, R2, R3);
+	return;
+else
+	return;
+endif;
