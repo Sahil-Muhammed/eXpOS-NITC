@@ -116,4 +116,14 @@ PTLR = 10;
 [PROCESS_TABLE + 36] = CREATED;
 
 [86*512] = [84 * 512 + 1];
+
+// load scheduler module into memory
+loadi(50,63);
+loadi(51,64);
+alias i R0;
+i = 3;
+while (i < MAX_PROC_NUM) do
+	[PROCESS_TABLE + i*16 + 4] = TERMINATED;
+	i = i + 1;
+endwhile;
 return;

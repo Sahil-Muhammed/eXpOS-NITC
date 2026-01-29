@@ -1,0 +1,57 @@
+alias currPID R0;
+currPID = [SYSTEM_STATUS_TABLE + 1];
+
+multipush(BP);
+
+alias process_table_entry R2;
+process_table_entry = PROCESS_TABLE + currPID*16;
+
+[process_table_entry + 12] = SP % 512;
+[process_table_entry + 14] = PTBR;
+[process_table_entry + 15] = PTLR;
+
+// Iterate through the Process Table entries, starting from the succeeding entry of the current process to find a process in READY or CREATED state.
+
+alias newPID R5;
+alias pte R3;
+alias flag R4;
+newPID = 0;
+pte = currPID + 1;
+
+while ([PROCESS_TABLE + pte*16 + 4] != READY && [PROCESS_TABLE + pte*16 + 4] != CREATED) do
+        pte = (pte + 1) % 16;
+endwhile; 
+
+if (pte >= MAX_PROC_NUM) then
+	// set to idle process' PID
+	newPID = 0;
+else
+	newPID = pte;
+endif;
+
+alias userAreaPage R6;
+alias kptr R7;
+
+userAreaPage = [PROCESS_TABLE + newPID*16 + 11];
+kptr = [PROCESS_TABLE + newPID*16 + 12];
+
+SP = userAreaPage * 512 + kptr;
+
+PTBR = [PROCESS_TABLE + newPID*16 + 14];
+PTLR = [PROCESS_TABLE + newPID*16 + 15];
+
+[SYSTEM_STATUS_TABLE + 1] = newPID;
+
+alias state R8;
+state = [PROCESS_TABLE + newPID*16 + 4];
+if (state == CREATED) then
+	SP = [PROCESS_TABLE + newPID*16 + 13];
+	state = RUNNING;
+	[PROCESS_TABLE + newPID*16 + 9] = 0;
+	ireturn;
+endif;
+
+state = RUNNING;
+// could be POP BP; or something else (not sure)
+multipop(BP);
+return;
