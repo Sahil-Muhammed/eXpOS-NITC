@@ -4,7 +4,9 @@ load --init $HOME/myexpos/expl/samples/Evn100.xsm
 load --library $HOME/myexpos/expl/expl_progs/library_stage11.xsm
 load --idle $HOME/myexpos/expl/samples/idle_process.xsm
 load --int=timer $HOME/myexpos/spl/spl_progs/sample_timer_stage14.xsm
-load --module 7 $HOME/myexpos/spl/spl_progs/sample_mod7_stage14.xsm
+load --module 7 $HOME/myexpos/spl/spl_progs/sample_mod7_stage14_assg.xsm
 load --module 5 $HOME/myexpos/spl/spl_progs/sample_mod5_stage14.xsm
 load --int=10 $HOME/myexpos/spl/spl_progs/sample_int10_stage14.xsm
+load --exec $HOME/myexpos/expl/samples/Odd100.xsm
+load --exec $HOME/myexpos/expl/samples/primes.xsm
 exit
