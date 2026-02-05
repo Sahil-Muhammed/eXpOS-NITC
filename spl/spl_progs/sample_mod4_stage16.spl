@@ -1,0 +1,46 @@
+alias functionNum R1;
+alias currentPID R2;
+breakpoint;
+if (functionNum == 3) then
+	// acquiring terminal
+	// push all registers used till now in this module
+	multipush(R0, R1, R2, R3);
+	R1 = 8;
+	R2 = currentPID;
+	call MOD_0;
+	// ignore value in R0, but how?!
+	multipop(R0, R1, R2, R3);
+	print R3;
+
+	// releasing terminal;
+	multipush(R0, R1, R2, R3);
+	R1 = 9;
+	R2 = currentPID;
+	call MOD_0;
+	// save value in register R0 (return val), if needed
+	multipop(R0, R1, R2, R3);
+	return;
+endif;
+if (functionNum == 4) then
+	breakpoint;
+	multipush(R0, R1, R2, R3);
+	R1 = 8;
+	R2 = currentPID;
+	// acquire terminal
+	call MOD_0;
+	multipop(R0, R1, R2, R3);
+	breakpoint;	
+	read;
+	
+	[PROCESS_TABLE + currentPID*16 + 4] = WAIT_TERMINAL;
+	// call scheduler
+	multipush(R0, R1, R2, R3);	
+	call MOD_5;
+	
+	multipop(R0, R1, R2, R3);
+	alias physicalAddrWord R4;
+	physicalAddrWord = [PTBR + 2 * (R3/512)] * 512 + (R3 % 512);
+	[physicalAddrWord] = [PROCESS_TABLE + currentPID * 16 + 8];
+endif;
+
+return;

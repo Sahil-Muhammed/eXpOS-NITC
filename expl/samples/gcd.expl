@@ -1,0 +1,32 @@
+decl
+	int gcd(int a, int b);
+enddecl
+
+int gcd(int a, int b){
+	decl
+		int t1, t2, t3, flag;
+	enddecl
+	begin
+	if (b == 0) then
+		t3 = a;
+	else
+		t3 = gcd(t1, t2);
+	endif;
+	return t3;
+	end
+}
+int main(){
+	decl 
+		int temp1, a, b, res;
+	enddecl
+	
+	begin
+		temp1 = initialize();
+		read(a);
+		read(b);
+		res = gcd(a, b);
+		write(res);
+	
+	return 0;
+	end
+}

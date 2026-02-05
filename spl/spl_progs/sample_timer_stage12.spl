@@ -17,6 +17,7 @@ process_table_entry = PROCESS_TABLE + currentPID * 16;
 [process_table_entry + 4] = READY;
 
 // toggle between the 2 processes
+// newPID = 1 - currentPID works as well
 alias newPID R2;
 if(currentPID == 0) then
 	newPID = 1;
