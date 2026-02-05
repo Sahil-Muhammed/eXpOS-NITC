@@ -1,6 +1,5 @@
 alias functionNum R1;
 alias currentPID R2;
-breakpoint;
 if (functionNum == 3) then
 	// acquiring terminal
 	// push all registers used till now in this module
@@ -22,7 +21,6 @@ if (functionNum == 3) then
 	return;
 endif;
 if (functionNum == 4) then
-	breakpoint;
 	multipush(R0, R1, R2, R3);
 	R1 = 8;
 	R2 = currentPID;

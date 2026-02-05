@@ -1,4 +1,4 @@
-load --int=7 $HOME/myexpos/spl/spl_progs/sample_int7.xsm
+load --int=7 $HOME/myexpos/spl/spl_progs/sample_int7_stage15.xsm
 load --os $HOME/myexpos/spl/spl_progs/os_startup_stage13.xsm
 load --init $HOME/myexpos/expl/samples/extGCD.xsm
 load --library $HOME/myexpos/expl/library.lib

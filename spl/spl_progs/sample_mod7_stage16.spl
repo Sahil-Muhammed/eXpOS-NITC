@@ -112,30 +112,11 @@ PTLR = 10;
 
 [76*512] = [65 * 512 + 1];
 
-
-// Process table setup for init 2
-
-[PROCESS_TABLE + 33] = 2;
-// UArea Page number for init
-[PROCESS_TABLE + 43] = 90;
-// UPTR for init
-[PROCESS_TABLE + 45] = 8*512;
-// KPTR for init
-[PROCESS_TABLE + 44] = 0;
-// PTBR for init
-[PROCESS_TABLE + 46] = PAGE_TABLE_BASE+40;
-[PROCESS_TABLE + 47] = 10;
-
-// State for init
-[PROCESS_TABLE + 36] = CREATED;
-
-[86*512] = [84 * 512 + 1];
-
 // load scheduler module into memory
 loadi(50,63);
 loadi(51,64);
 alias i R0;
-i = 3;
+i = 2;
 while (i < MAX_PROC_NUM) do
 	[PROCESS_TABLE + i*16 + 4] = TERMINATED;
 	i = i + 1;
