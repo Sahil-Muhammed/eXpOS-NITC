@@ -27,6 +27,15 @@ loadi(9, 22);
 // load read routine (INT 6)
 loadi(14, 27);
 loadi(15, 28);
+// load exec syscall (INT 9)
+loadi(20, 33);
+loadi(21, 34);
+// load process manager module (MOD 1)
+loadi(42, 55);
+loadi(43, 56);
+// load memory manager module (MOD 2)
+loadi(44, 57);
+loadi(45, 58);
 
 [TERMINAL_STATUS_TABLE] = 0;
 
@@ -121,4 +130,20 @@ while (i < MAX_PROC_NUM) do
 	[PROCESS_TABLE + i*16 + 4] = TERMINATED;
 	i = i + 1;
 endwhile;
+
+// initialize memory free list
+
+i = 0;
+
+while (i < 128) do
+	if (i < 90) then
+		[MEMORY_FREE_LIST + i] = 1;
+	else
+		[MEMORY_FREE_LIST + i] = 0;
+	endif;
+endwhile; 
+
+[SYSTEM_STATUS_TABLE + 2] = 128 - 90;
+[SYSTEM_STATUS_TABLE + 3] = 0;
+
 return;

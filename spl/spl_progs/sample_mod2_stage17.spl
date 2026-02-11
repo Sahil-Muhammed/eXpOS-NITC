@@ -1,0 +1,44 @@
+alias functionNum R1;
+if (functionNum == GET_FREE_PAGE) then
+	[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
+	while ([SYSTEM_STATUS_TABLE + 2] == 0) do
+		[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = WAIT_MEM;
+		// invoke the scheduler
+		call MOD_5;
+	endwhile;
+	
+	// decrement WAIT_MEM_COUNT field and MEM_FREE_COUNT
+	[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
+	[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
+	
+	// search through memory free list to find a free page
+	alias i R0;
+	i = 0;
+	while (i < MAX_MEM_PAGE) do
+		if ([MEMORY_FREE_LIST + i] != 0) then
+			continue;
+		else
+			[MEMORY_FREE_LIST + i] = 1;
+			R0 = i;
+			break;
+		endif;
+	endwhile;
+	return;
+endif;
+
+if (functionNum == RELEASE_PAGE) then
+	[MEMORY_FREE_LIST + [PTBR + (2 * R2)]] = [MEMORY_FREE_LIST + [PTBR + (2*R2)]] - 1;
+	if ([MEMORY_FREE_LIST + [PTBR + (2 * R2)]] == 0) then
+		[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
+	endif;
+	
+	alias i R0;
+	i = 0;
+	while (i < MAX_PROC_NUM) do
+		if ([PROCESS_TABLE + i*16 + 4] == WAIT_MEM) then
+			[PROCESS_TABLE + i*16 + 4] = READY;
+		endif;
+	endwhile;
+
+	return;
+endif;

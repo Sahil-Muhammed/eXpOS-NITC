@@ -9,6 +9,9 @@ load --module 5 $HOME/myexpos/spl/spl_progs/sample_mod5_stage14.xsm
 load --int=10 $HOME/myexpos/spl/spl_progs/sample_int10_stage14.xsm
 load --int=console $HOME/myexpos/spl/spl_progs/sample_console_stage16.xsm
 load --int=6 $HOME/myexpos/spl/spl_progs/sample_int6_stage16.xsm
+load --int=9 $HOME/myexpos/spl/spl_progs/sample_int9_stage17.xsm
 load --module 4 $HOME/myexpos/spl/spl_progs/sample_mod4_stage16.xsm
 load --module 0 $HOME/myexpos/spl/spl_progs/sample_mod0_stage15.xsm
+load --module 1 $HOME/myexpos/spl/spl_progs/sample_mod1_stage17.xsm
+load --module 2 $HOME/myexpos/spl/spl_progs/sample_mod2_stage17.xsm
 exit
