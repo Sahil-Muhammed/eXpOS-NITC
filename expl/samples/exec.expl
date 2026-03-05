@@ -1,0 +1,18 @@
+int main()
+{
+    decl
+    str str1, fname, wrd, str2;
+    int r, tmp;
+    enddecl
+
+    begin
+    str1 = "File name:";
+    str2 = "response: ";
+    r = exposcall ( "Write", -2, str1);
+    r = exposcall ( "Read", -1, fname);
+    r = exposcall ( "Exec", fname );
+    
+    return 0;
+    end
+}
+

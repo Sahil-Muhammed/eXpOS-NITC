@@ -12,9 +12,6 @@ loadi(5, 18);
 // load INT 7 routine to memory
 loadi(16,29);
 loadi(17,30);
-// load the second init program (ExpL for odd till 100)
-loadi(84, 69);
-loadi(85, 70);
 // load resource manager module (MOD 0)
 loadi(40, 53);
 loadi(41, 54);
@@ -36,6 +33,10 @@ loadi(43, 56);
 // load memory manager module (MOD 2)
 loadi(44, 57);
 loadi(45, 58);
+// load inode table
+loadi(59, 3);
+loadi(60, 4);
+
 [TERMINAL_STATUS_TABLE] = 0;
 
 PTBR = PAGE_TABLE_BASE + 20;
@@ -69,44 +70,9 @@ PTLR = 10;
 [PTBR+18] = 77;
 [PTBR+19] = "0110";
 
-
-// Page table entries for 2nd init
-
-PTBR = PAGE_TABLE_BASE + 40;
-PTLR = 10; 
-
-//Library
-[PTBR+0] = 63;
-[PTBR+1] = "0100";
-[PTBR+2] = 64;
-[PTBR+3] = "0100";
-
-//Heap
-[PTBR+4] = 88;
-[PTBR+5] = "0110";
-[PTBR+6] = 89;
-[PTBR+7] = "0110";
-
-//Code
-[PTBR+8] = 84;
-[PTBR+9] = "0100";
-[PTBR+10] = 85;
-[PTBR+11] = "0100";
-[PTBR+12] = -1;
-[PTBR+13] = "0000";
-[PTBR+14] = -1;
-[PTBR+15] = "0000";
-
-//Stack
-[PTBR+16] = 86;
-[PTBR+17] = "0110";
-[PTBR+18] = 87;
-[PTBR+19] = "0110";
-
-
 [PROCESS_TABLE + 17] = 1;
 // UArea Page number for init
-[PROCESS_TABLE + 27] = 83;
+[PROCESS_TABLE + 27] = 80;
 // UPTR for init
 [PROCESS_TABLE + 29] = 8*512;
 // KPTR for init
@@ -135,14 +101,15 @@ endwhile;
 i = 0;
 
 while (i < 128) do
-	if (i < 90) then
+	if (i < 83) then
 		[MEMORY_FREE_LIST + i] = 1;
 	else
 		[MEMORY_FREE_LIST + i] = 0;
 	endif;
+	i = i + 1;
 endwhile; 
 
-[SYSTEM_STATUS_TABLE + 2] = 128 - 90;
+[SYSTEM_STATUS_TABLE + 2] = 128 - 83;
 [SYSTEM_STATUS_TABLE + 3] = 0;
 
 return;

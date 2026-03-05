@@ -8,7 +8,7 @@ SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
 // assuming file name is at userSP - 3
 alias fileName R1;
 
-fileName = [[PTBR + 2 * ((userSP - 3) / 512)] + ((userSP - 3) % 512)];
+fileName = [[PTBR + 2 * ((userSP - 3) / 512)] * 512 + ((userSP - 3) % 512)];
 
 // search memory copy of the inode table for fileName
 
@@ -17,7 +17,7 @@ alias flag R3;
 flag = 0;
 i = 0;
 while (i < MAX_FILE_NUM) do
-	if ([(59 * 512) + (16 * i) + 1] == fileName) then
+	if ([INODE_TABLE + (16 * i) + 1] == fileName) then
 		flag = 1;
 		break;
 	else
@@ -28,9 +28,10 @@ endwhile;
 
 if (flag == 0) then
 	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
-	SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+	// SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+	SP = userSP;
 	// store -1 in the retVal
-	[[PTBR + 2 * ((userSP - 1) / 512)] + (userSP - 1) % 512] = -1;
+	[[PTBR + 2 * ((userSP - 1) / 512)] * 512 + ((userSP - 1) % 512)] = -1;
 	ireturn;
 endif;
 
@@ -42,7 +43,7 @@ inodeIndex = i;
 multipush(R0, R1, R2, R3, R4);
 
 // store function number as first argument
-R1 = FREE_PAGE_TABLE;
+R1 = EXIT_PROCESS;
 // PID as second argument
 R2 = [SYSTEM_STATUS_TABLE + 1];
 
@@ -55,12 +56,12 @@ alias UAreaPage R5;
 UAreaPage = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11];
 
 // increment memory free list entry
-[(57 * 512) + UAreaPage] = [(57 * 512) + UAreaPage] + 1;
+[MEMORY_FREE_LIST + UAreaPage] = [MEMORY_FREE_LIST + UAreaPage] + 1;
 
 // decrement memory free count in system status table
 [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
 
-// so i suppose these values are changed oppositely in the process manager module
+// so i suppose these values are changed oppositely in the process manager module; yeah, that's right
 
 SP = UAreaPage * 512 - 1;
 
@@ -74,11 +75,11 @@ SP = UAreaPage * 512 - 1;
 // Library
 // no need to set PTBR and PTLR, we're using same values from the previous process
 [PTBR + 0] = 63;
-[PTBR + 1] = 0100;
+[PTBR + 1] = "0100";
 [PTBR + 2] = 64;
-[PTBR + 3] = 0100;
+[PTBR + 3] = "0100";
 
-// invoke getFreePage in memory management module
+// invoke getFreePage in memory manager module
 
 multipush(R0, R1, R2, R3, R4, R5);
 
@@ -88,7 +89,7 @@ call MOD_2;
 
 // set heap page 1
 [PTBR + 4] = R0;
-[PTBR + 5] = 0100;
+[PTBR + 5] = "0110";
 multipop(R0, R1, R2, R3, R4, R5);
 
 
@@ -100,7 +101,7 @@ call MOD_2;
 
 // set heap page 2
 [PTBR + 6] = R0;
-[PTBR + 7] = 0100;
+[PTBR + 7] = "0110";
 multipop(R0, R1, R2, R3, R4, R5);
 
 
@@ -112,7 +113,7 @@ call MOD_2;
 
 // set stack page 1
 [PTBR + 16] = R0;
-[PTBR + 17] = 0100;
+[PTBR + 17] = "0110";
 multipop(R0, R1, R2, R3, R4, R5);
 
 
@@ -124,7 +125,7 @@ call MOD_2;
 
 // set stack page 2
 [PTBR + 18] = R0;
-[PTBR + 19] = 0100;
+[PTBR + 19] = "0110";
 multipop(R0, R1, R2, R3, R4, R5);
 
 alias freePages R6;
@@ -133,21 +134,21 @@ freePages = 0;
 i = 0;
 while (i < 4) do
 	// check inode table for code block(s) which occupy the disk
-	if ([(59 * 512) + 8 + i] == -1) then
+	if ([INODE_TABLE + (inodeIndex * 16) + 8 + i] == -1) then
 		[PTBR + 8 + (2*i)] = -1;
-		[PTBR + 9 + (2*i)] = 0000;
-		continue;
+		[PTBR + 9 + (2*i)] = "0000";
+		// continue;
 	else
 		multipush(R0, R1, R2, R3, R4, R5, R6);
 		
 		R1 = GET_FREE_PAGE;
 		call MOD_2;
 		[PTBR + 8 + (2*i)] = R0;
-		[PTBR + 9 + (2*i)] = 0110;
+		[PTBR + 9 + (2*i)] = "0100";
 
 		// load block into memory
 
-		loadi(R0, [(59 * 512) + 8 + i]);
+		loadi(R0, [INODE_TABLE + (inodeIndex * 16) + 8 + i]);
 		multipop(R0, R1, R2, R3, R4, R5, R6);
 	endif;
 	i = i + 1;
@@ -155,11 +156,12 @@ endwhile;
 
 // store entry point to top of user stack
 
-[[PTBR + 16] * 512] = [[PTBR + 8] * 512 - 1];
+[[PTBR + 16] * 512] = [[PTBR + 8] * 512 + 1];
 
 // change SP to user stack and change mode
 
-SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13];
+SP = 8 * 512;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 13] = 8 * 512;
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
 
 // return to user mode
