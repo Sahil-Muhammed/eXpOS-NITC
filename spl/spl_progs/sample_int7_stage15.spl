@@ -15,7 +15,6 @@ fileDescPhysicalAddr = (physicalPageNum * 512) + offset;
 alias fileDescriptor R4;
 fileDescriptor=[fileDescPhysicalAddr];
 
-breakpoint;
 if (fileDescriptor != -2)
 then
 	//code when argument 1 is not valid
@@ -41,7 +40,6 @@ else
 	physicalAddrRetVal = ([PTBR + 2 * (userSP - 1)/ 512] * 512) + ((userSP - 1) % 512);
 	[physicalAddrRetVal] = 0;
 endif;
-breakpoint;
 SP = userSP;
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 0;
 

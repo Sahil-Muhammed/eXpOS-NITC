@@ -84,7 +84,6 @@ SP = 8*512;
 
 [81 * 512] = [69*512 + 1];
 
-breakpoint;
 [PROCESS_TABLE + 11] = 82;
 // Kernel stack pointer=0 for idle
 [PROCESS_TABLE + 12] = 0;
@@ -113,5 +112,4 @@ breakpoint;
 //State for init
 [PROCESS_TABLE + 20] = RUNNING;
 [SYSTEM_STATUS_TABLE + 1] = 1;
-breakpoint;
 ireturn;
