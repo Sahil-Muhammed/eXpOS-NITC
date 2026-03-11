@@ -1,0 +1,95 @@
+alias functionNum R1;
+if (functionNum == GET_FREE_PAGE) then
+	[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
+	while ([SYSTEM_STATUS_TABLE + 2] == 0) do
+		[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 4] = WAIT_MEM;
+		// invoke the scheduler
+		multipush(R1, R2, R3);
+		call MOD_5;
+		multipop(R1, R2, R3);
+	endwhile;
+	
+	// decrement WAIT_MEM_COUNT field and MEM_FREE_COUNT
+	[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1;
+	[SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1;
+	
+	// search through memory free list to find a free page
+	alias i R0;
+	i = 0;
+	while (i < MAX_MEM_PAGE) do
+		if ([MEMORY_FREE_LIST + i] == 0) then
+			[MEMORY_FREE_LIST + i] = 1;
+                        R0 = i;
+                        break;
+		endif;
+		i = i + 1;
+	endwhile;
+	return;
+endif;
+
+if (functionNum == RELEASE_PAGE) then
+	[MEMORY_FREE_LIST + R2] = [MEMORY_FREE_LIST + R2] - 1;
+	if ([MEMORY_FREE_LIST + R2] == 0) then
+		[SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
+	endif;
+	
+	alias i R0;
+	i = 0;
+	while (i < MAX_PROC_NUM) do
+		if ([PROCESS_TABLE + i*16 + 4] == WAIT_MEM) then
+			[PROCESS_TABLE + i*16 + 4] = READY;
+		endif;
+		i = i + 1;
+	endwhile;
+
+	return;
+endif;
+
+if (functionNum == GET_CODE_PAGE) then
+	alias i R7;
+	alias j R8;
+	i = 0;
+	while (i < MAX_PROC_NUM) do
+		j = 0;
+		while (j < 4) do
+			if ([DISK_MAP_TABLE + (i * 10) + 4 + j] != R2) then
+				j = j + 1;
+				continue;
+			else
+				if ([PAGE_TABLE_BASE + (i * 20) + 9 + (2*j)] == "0100") then
+					R0 = [PAGE_TABLE_BASE + (i * 20) + 8 + (2*j)];
+					
+					// increment memory free list entry
+					[MEMORY_FREE_LIST + R0] = [MEMORY_FREE_LIST + R0] + 1;
+					return;
+				else 
+					multipush(R1, R2, R3, R4, R5, R6, R7);
+					R1 = GET_FREE_PAGE;
+					call MOD_2;
+					multipop(R1, R2, R3, R4, R5, R6, R7);
+
+					// R0 holds the free page number
+					multipush(R1, R2, R3, R4, R5, R6, R7);
+					R1 = DISK_LOAD;
+					R3 = R0;
+					R4 = R2;
+					R2 = [SYSTEM_STATUS_TABLE + 1];	
+					call MOD_4;
+					multipop(R1, R2, R3, R4, R5, R6, R7);
+					return;
+				endif;
+				break;
+			endif;
+			j = j + 1;
+		endwhile;
+
+		i = i + 1;
+	endwhile;
+
+	return;	
+endif;
+
+if (functionNum == RELEASE_BLOCK) then
+	[DISK_FREE_LIST + R2] = [DISK_FREE_LIST + R2] - 1;
+	return;
+endif;
