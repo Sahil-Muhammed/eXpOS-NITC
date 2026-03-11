@@ -132,17 +132,17 @@ while (i < 4) do
 		[PTBR + 9 + (2*i)] = "0000";
 		// continue;
 	else
-		multipush(R0, R1, R2, R3, R4, R5, R6);
+		multipush(R1, R2, R3, R4, R5, R6);
 		
 		R1 = GET_CODE_PAGE;
 		R2 = [INODE_TABLE + (inodeIndex * 16) + 8 + i];
 		call MOD_2;
+		multipop(R1, R2, R3, R4, R5, R6);
 		[PTBR + 8 + (2*i)] = R0;
 		[PTBR + 9 + (2*i)] = "0100";
 
 		// load block into memory
 
-		multipop(R0, R1, R2, R3, R4, R5, R6);
 		break;
 	endif;
 	i = i + 1;
