@@ -1,20 +1,22 @@
 load --int=7 $HOME/myexpos/spl/spl_progs/sample_int7_stage15.xsm
 load --os $HOME/myexpos/spl/spl_progs/os_startup_stage13.xsm
-load --init $HOME/myexpos/expl/samples/LL.xsm
+load --init $HOME/myexpos/expl/samples/fork.xsm
 load --library $HOME/myexpos/expl/library.lib
 load --idle $HOME/myexpos/expl/samples/idle_process.xsm
 load --int=timer $HOME/myexpos/spl/spl_progs/sample_timer_stage14.xsm
-load --module 7 $HOME/myexpos/spl/spl_progs/sample_mod7_stage19.xsm
-load --module 5 $HOME/myexpos/spl/spl_progs/sample_mod5_stage14.xsm
+load --module 7 $HOME/myexpos/spl/spl_progs/sample_mod7_stage20.xsm
+load --module 5 $HOME/myexpos/spl/spl_progs/sample_mod5_stage20.xsm
 load --int=10 $HOME/myexpos/spl/spl_progs/sample_int10_stage14.xsm
 load --int=console $HOME/myexpos/spl/spl_progs/sample_console_stage16.xsm
 load --int=6 $HOME/myexpos/spl/spl_progs/sample_int6_stage16.xsm
 load --int=9 $HOME/myexpos/spl/spl_progs/sample_int9_stage19.xsm
+load --int=8 $HOME/myexpos/spl/spl_progs/sample_int8_stage20.xsm
 load --module 4 $HOME/myexpos/spl/spl_progs/sample_mod4_stage18.xsm
 load --module 0 $HOME/myexpos/spl/spl_progs/sample_mod0_stage18.xsm
-load --module 1 $HOME/myexpos/spl/spl_progs/sample_mod1_stage19.xsm
+load --module 1 $HOME/myexpos/spl/spl_progs/sample_mod1_stage20.xsm
 load --module 2 $HOME/myexpos/spl/spl_progs/sample_mod2_stage19.xsm
 load --int=disk $HOME/myexpos/spl/spl_progs/disk_interrupt_handler_stage18.xsm
 load --exec $HOME/myexpos/expl/samples/Odd100.xsm
+load --exec $HOME/myexpos/expl/samples/Evn100.xsm
 load --exhandler $HOME/myexpos/spl/spl_progs/exception_handler_stage19.xsm
 exit

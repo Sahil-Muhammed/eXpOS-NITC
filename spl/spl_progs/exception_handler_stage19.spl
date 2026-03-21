@@ -9,7 +9,7 @@ alias userSP R0;
 userSP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
 multipush(EIP);
 
-if (EC > 0 || userSP > (PTLR * 512 - 1)) then
+if (EC > 0 || userSP >= (PTLR * 512 - 1)) then
 	print EC;
 	multipush(R0);
 	R1 = EXIT_PROCESS;
@@ -54,7 +54,7 @@ restore;
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
 SP = SP + 1;
-[SP] = EIP;
+[[PTBR + (2 * (SP / 512))] + (SP % 512)] = EIP;
 
 ireturn;
 

@@ -1,15 +1,14 @@
 alias currPID R0;
 currPID = [SYSTEM_STATUS_TABLE + 1];
-[PROCESS_TABLE + currPID*16 + 4] = TERMINATED;
+[PROCESS_TABLE + currPID*16 + 9] = 10;
 
-alias i R1;
-i = 1;
-while (i < 16 && [PROCESS_TABLE + i*16 + 4] == TERMINATED) do
-	i = i + 1;
-endwhile;
+[PROCESS_TABLE + currPID*16 + 13] = SP;
+SP = [PROCESS_TABLE + currPID*16 + 11] * 512 - 1;
 
-if (i >= 16) then
-	halt;
-endif;
+multipush(R0);
+R1 = EXIT_PROCESS;
+R2 = currPID;
+call MOD_1;
+multipush(R0);
 
 call SCHEDULER;

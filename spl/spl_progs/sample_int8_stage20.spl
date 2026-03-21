@@ -1,0 +1,157 @@
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 8;
+
+// switch to kernel stack
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+alias pte R10;
+
+R1 = GET_PCB_ENTRY;
+call MOD_1;
+pte = R0;
+breakpoint;
+
+alias childPT R14;
+childPT = PROCESS_TABLE + (pte * 16);
+
+alias parentPT R15;
+parentPT = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
+if (pte == -1) then
+	ireturn;
+endif;
+
+if ([PTBR + (2*2)] == -1) then
+	// allocate 2 pages for heap since it wasn't allocated earlier
+	multipush(R0, R14, R15);
+	R1 = GET_FREE_PAGE;
+	call MOD_2;
+	[PTBR + 4] = R0;
+	[PTBR + 5] = "0110";
+	multipop(R0, R14, R15);
+	
+	multipush(R0, R14, R15);
+	R1 = GET_FREE_PAGE;
+	call MOD_2;
+	[PTBR + 6] = R0;
+	[PTBR + 7] = "0110";
+	multipop(R0, R14, R15);
+endif;
+
+multipush(R10, R14, R15);
+R1 = GET_FREE_PAGE;
+call MOD_2;
+multipop(R10, R14, R15);
+[childPT + 11] = R0;
+
+multipush(R10, R14, R15);
+R1 = GET_FREE_PAGE;
+call MOD_2;
+multipop(R10, R14, R15);
+[PAGE_TABLE_BASE + (pte*20) + 16] = R0;
+[PAGE_TABLE_BASE + (pte*20) + 17] = "0110";
+
+multipush(R10);
+R1 = GET_FREE_PAGE;
+call MOD_2;
+multipop(R10);
+[PAGE_TABLE_BASE + (pte*20) + 18] = R0;
+[PAGE_TABLE_BASE + (pte*20) + 19] = "0110";
+
+// copy parent's process table entry fields
+
+[childPT + 3] = [parentPT + 3];
+[childPT + 4] = [parentPT + 4];
+[childPT + 5] = [parentPT + 5];
+[childPT + 6] = [parentPT + 6];
+[childPT + 7] = [parentPT + 7];
+[childPT + 9] = [parentPT + 9];
+[childPT + 10] = [parentPT + 10];
+[childPT + 13] = [parentPT + 13];
+
+[childPT + 2] = [SYSTEM_STATUS_TABLE + 1];
+[childPT + 9] = 0;
+[childPT + 0] = 0;
+[childPT + 1] = pte;
+[childPT + 12] = 0;
+
+// copy disk map table
+
+breakpoint;
+alias i R11;
+i = 0;
+while (i < 9) do
+	[DISK_MAP_TABLE + (pte*10) + i] = [DISK_MAP_TABLE + ([SYSTEM_STATUS_TABLE + 1]*10 + i)];
+	i = i + 1;
+endwhile;
+
+breakpoint;
+
+i = 0;
+alias UAreaPageChild R12;
+UAreaPageChild = [PROCESS_TABLE + (pte*16) + 11];
+alias UAreaPageParent R13;
+UAreaPageParent = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11];
+while (i < 8) do
+	[UAreaPageChild * 512 + RESOURCE_TABLE_OFFSET + (2*i)] = [UAreaPageParent * 512 + RESOURCE_TABLE_OFFSET + (2*i)];
+	[UAreaPageChild * 512 + RESOURCE_TABLE_OFFSET + (2*i) + 1] = [UAreaPageParent * 512 + RESOURCE_TABLE_OFFSET + (2*i) + 1];
+	i = i + 1;
+endwhile;
+
+i = 0;
+while (i < 8) do
+	if ([UAreaPageParent * 512 + RESOURCE_TABLE_OFFSET + (2*i)] != -1) then
+		if ([UAreaPageParent * 512 + RESOURCE_TABLE_OFFSET + (2*i)] == FILE) then
+			[OPEN_FILE_TABLE + [UAreaPageParent * 512 + RESOURCE_TABLE_OFFSET + (2*i) + 1]] = [OPEN_FILE_TABLE + [UAreaPageParent * 512 + RESOURCE_TABLE_OFFSET + (2*i) + 1]] + 1;
+		else
+			[SEMAPHORE_TABLE + [UAreaPageParent * 512 + RESOURCE_TABLE_OFFSET + (2*i) + 1]] = [SEMAPHORE_TABLE + [UAreaPageParent * 512 + RESOURCE_TABLE_OFFSET + (2*i) + 1]] + 1;
+		endif;
+	endif;
+	i = i + 1;
+endwhile;
+
+i = 0;
+while (i < 8) do
+	[PAGE_TABLE_BASE + (pte * 20) + (2*i)] = [PTBR + (2*i)];
+	[PAGE_TABLE_BASE + (pte * 20) + (2*i) + 1] = [PTBR + (2 * i) + 1];
+	if (i > 1) then
+		[MEMORY_FREE_LIST + [PTBR + (2*i)]] = [MEMORY_FREE_LIST + [PTBR + (2*i)]] + 1;
+	endif;
+	i = i + 1;
+endwhile;
+
+// set stack pages in page table
+
+// done earlier
+
+i = 0;
+while (i < PAGE_SIZE) do
+	[[PAGE_TABLE_BASE + (pte * 20) + 16] * 512 + i] = [[PTBR + 16] * 512 + i];
+	i = i + 1;
+endwhile; 
+
+[[childPT + 11] * 512] = BP;
+
+// re-use i to store logical address of return address in stack (child)
+
+i = [childPT + 13];
+[[PAGE_TABLE_BASE + (pte*20) + 2*((i-1)/512)]*512 + ((i-1) % 512)] = 0;
+
+// re-use i to store logical address of return address in stack (parent)
+
+i = [parentPT + 13];
+[[PTBR + 2*((i-1)/512)]*512 + ((i-1) % 512)] = pte;
+
+// set state of child to created
+
+[childPT + 4] = CREATED;
+
+// set mode flag of parent process to 0
+
+[parentPT + 9] = 0;
+
+// switch stack to user stack and return to parent process
+
+SP = [parentPT + 13];
+
+breakpoint;
+ireturn;

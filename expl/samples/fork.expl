@@ -1,0 +1,21 @@
+int main(){
+	decl
+		int pid, r;
+	enddecl
+
+	begin
+	pid = exposcall("Fork");
+	
+	if (pid == 0) then
+		r = exposcall("Exec", "Odd100.xsm");
+	else
+		if (pid > 0) then
+			r = exposcall("Write", -1, "fork w");
+			r = exposcall("Exec", "Evn100.xsm");
+		else
+			r = exposcall("Write", -1, "fork erR");
+		endif;
+	endif;
+	return 0;
+	end
+}
