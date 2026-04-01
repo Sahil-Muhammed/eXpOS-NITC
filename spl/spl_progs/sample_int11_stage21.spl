@@ -1,0 +1,58 @@
+alias userSP R0;
+userSP = SP;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+
+breakpoint;
+
+alias sysCall R1;
+sysCall = [[PTBR + 2 * ((userSP - 4)/512)] * 512 + ((userSP - 4) % 512)];
+
+if (sysCall == INT_GETPID) then
+	[[PTBR + 2 * ((userSP - 1)/512)] * 512 + ((userSP - 1) % 512)] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 1];
+	ireturn;
+endif;
+
+if (sysCall == INT_GETPPID) then
+	[[PTBR + 2 * ((userSP - 1)/512)] * 512 + ((userSP - 1) % 512)] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 2];
+	ireturn;
+endif;
+
+if (sysCall == INT_WAIT) then
+	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = INT_WAIT;
+	alias tarPID R2;
+	tarPID = [PTBR + 2 * ((userSP - 3)/512)] * 512 + ((userSP - 3) % 512);
+	if (tarPID < 0 || tarPID >= MAX_PROC_NUM || tarPID == [SYSTEM_STATUS_TABLE + 1] || [PROCESS_TABLE + (tarPID * 16) + 4] == "TERMINATED") then
+		[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+		[[PTBR + 2 * ((userSP - 1)/512)] * 512 + ((userSP - 1) % 512)] = -1;
+		ireturn;
+	endif;
+
+	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 4] = WAIT_PROCESS;
+	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 5] = tarPID;
+
+	call SCHEDULER;
+
+	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+	[[PTBR + 2 * ((userSP - 1)/512)] * 512 + ((userSP - 1) % 512)] = 0;
+	ireturn;
+endif;
+
+if (sysCall == INT_SIGNAL) then
+	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = INT_SIGNAL;
+	
+	alias i R2;
+	i = 0;
+	while (i < MAX_PROC_NUM) do 
+		if ([PROCESS_TABLE + (i * 16) + 4] == WAIT_PROCESS && [PROCESS_TABLE + (i * 16) + 5] == [SYSTEM_STATUS_TABLE + 1]) then
+			[PROCESS_TABLE + (i * 16) + 4] = READY;
+		endif;
+		i = i + 1;
+	endwhile;
+
+	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+        [[PTBR + 2 * ((userSP - 1)/512)] * 512 + ((userSP - 1) % 512)] = 0;
+        ireturn;
+endif;
+
+ireturn;

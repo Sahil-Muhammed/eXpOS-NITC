@@ -1,0 +1,142 @@
+alias functionNum R1;
+if (functionNum == GET_PCB_ENTRY) then
+	alias i R2;
+	i = 0;
+	
+	// find free process in process table
+	while (i < MAX_PROC_NUM) do
+		if ([PROCESS_TABLE + i*16 + 4] == TERMINATED) then
+			break;
+		endif;
+		i = i + 1;
+	endwhile;
+
+	if (i == MAX_PROC_NUM) then
+		R0 = -1;
+		return;
+	endif;
+	
+	[PROCESS_TABLE + i*16 + 1] = i;
+	[PROCESS_TABLE + i*16 + 4] = ALLOCATED;
+	[PROCESS_TABLE + i*16 + 14] = PAGE_TABLE_BASE + (i * 20);
+	[PROCESS_TABLE + i*16 + 15] = 10;
+	R0 = i;
+	return;	
+endif;
+if (functionNum == FREE_USER_AREA_PAGE) then
+	// PID is already in R2
+	alias PID R2;
+	alias UAreaPage R3;
+	UAreaPage = [PROCESS_TABLE + PID*16 + 11];
+	
+	// call Release Page function with user area page as argument
+
+	multipush(R1, R2, R3);
+	
+	R1 = RELEASE_PAGE;
+	R2 = UAreaPage;
+	
+	call MOD_2;
+	multipop(R1, R2, R3);	
+	return;
+endif;
+if (functionNum == EXIT_PROCESS) then
+	
+	// call freePageTable function
+	alias PID R2;
+	multipush(R1, R2);
+	R1 = FREE_PAGE_TABLE;
+	
+	// PID already in R2
+	call MOD_1;
+	multipop(R1, R2);
+
+	// call freeUserAreaPage function
+	multipush(R1, R2);
+	R1 = FREE_USER_AREA_PAGE;
+	
+	call MOD_1;
+	multipop(R1, R2);
+
+	// set state to TERMINATED
+
+	[PROCESS_TABLE + PID*16 + 4] = TERMINATED;
+
+	// check mode flag not equal to 9 (exec)
+
+	if ([PROCESS_TABLE + PID*16 + 9] != 9) then
+		alias i R3;
+		i = 0;
+		while (i < MAX_PROC_NUM) do
+			if ([PROCESS_TABLE + i*16 + 4] == WAIT_PROCESS && [PROCESS_TABLE + i*16 + 5] == PID) then
+				[PROCESS_TABLE + i*16 + 4] = READY;
+			endif;
+			
+			// orphan child processes
+	
+			if ([PROCESS_TABLE + i*16 + 2] == PID) then
+				[PROCESS_TABLE + i*16 + 2] = -1;
+			endif;
+			i = i + 1;
+		endwhile;
+	endif; 
+
+	return;
+endif;
+if (functionNum == FREE_PAGE_TABLE) then
+	[PAGE_TABLE_BASE + (R2 * 20) + 0] = -1;
+	[PAGE_TABLE_BASE + (R2 * 20) + 1] = "0000";
+	[PAGE_TABLE_BASE + (R2 * 20) + 2] = -1;
+	[PAGE_TABLE_BASE + (R2 * 20) + 3] = "0000";
+	
+	alias i R3;
+	i = 2;
+	while (i < 10) do
+		if ([PAGE_TABLE_BASE + (R2 * 20) + 2*i] == -1) then
+			i = i + 1;
+			continue;
+		else
+			multipush(R1, R2, R3);
+			
+			R1 = RELEASE_PAGE;
+			R2 = [PAGE_TABLE_BASE + (R2 * 20) + 2*i];
+			call MOD_2;
+			multipop(R1, R2, R3);
+
+			[PAGE_TABLE_BASE + (R2 * 20) + 2*i] = -1;
+			[PAGE_TABLE_BASE + (R2 * 20) + (2*i) + 1] = "0000";
+		endif;
+		i = i + 1;
+	endwhile;
+
+	// call release block on heap and stack blocks
+
+	i = 2;
+	while (i < 10) do
+		if (i > 3 && i < 8) then
+			i = i + 1;
+			continue;
+		endif;
+		if ([DISK_MAP_TABLE + (R2 * 10) + i] != -1) then
+			//call release block
+			multipush(R1, R2, R3);
+			R1 = RELEASE_BLOCK;
+			R2 = [DISK_MAP_TABLE + (R2 * 10) + i];
+			R3 = [SYSTEM_STATUS_TABLE + 1];
+			call MOD_2;
+			multipop(R1, R2, R3);
+		endif;
+		i = i + 1;
+	endwhile;
+	
+	// invalidate all entries in DMT
+
+	i = 0;
+	while (i < 10) do
+		[DISK_MAP_TABLE + (R2 * 10) + i] = -1;
+		i = i + 1;
+	endwhile;
+	
+	
+	return;
+endif;

@@ -9,7 +9,6 @@ alias pte R10;
 R1 = GET_PCB_ENTRY;
 call MOD_1;
 pte = R0;
-breakpoint;
 
 alias childPT R14;
 childPT = PROCESS_TABLE + (pte * 16);
@@ -76,7 +75,6 @@ multipop(R10);
 
 // copy disk map table
 
-breakpoint;
 alias i R11;
 i = 0;
 while (i < 9) do
@@ -84,7 +82,6 @@ while (i < 9) do
 	i = i + 1;
 endwhile;
 
-breakpoint;
 
 i = 0;
 alias UAreaPageChild R12;
@@ -153,5 +150,4 @@ i = [parentPT + 13];
 
 SP = [parentPT + 13];
 
-breakpoint;
 ireturn;
