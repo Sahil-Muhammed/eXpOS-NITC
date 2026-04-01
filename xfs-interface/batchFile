@@ -15,10 +15,10 @@ load --int=9 $HOME/myexpos/spl/spl_progs/sample_int9_stage19.xsm
 load --int=8 $HOME/myexpos/spl/spl_progs/sample_int8_stage20.xsm
 load --module 4 $HOME/myexpos/spl/spl_progs/sample_mod4_stage18.xsm
 load --module 0 $HOME/myexpos/spl/spl_progs/sample_mod0_stage18.xsm
-load --module 1 $HOME/myexpos/spl/spl_progs/sample_mod1_stage20.xsm
+load --module 1 $HOME/myexpos/spl/spl_progs/sample_mod1_stage21.xsm
 load --module 2 $HOME/myexpos/spl/spl_progs/sample_mod2_stage19.xsm
 load --int=disk $HOME/myexpos/spl/spl_progs/disk_interrupt_handler_stage18.xsm
-load --exec $HOME/myexpos/expl/samples/Odd100.xsm
-load --exec $HOME/myexpos/expl/samples/Evn100.xsm
+load --exec $HOME/myexpos/expl/samples/getPID.xsm
+load --exec $HOME/myexpos/expl/samples/pid.xsm
 load --exhandler $HOME/myexpos/spl/spl_progs/exception_handler_stage19.xsm
 exit

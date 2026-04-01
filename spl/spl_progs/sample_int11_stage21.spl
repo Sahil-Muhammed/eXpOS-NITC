@@ -3,28 +3,30 @@ userSP = SP;
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
 
+alias sysCall R1;
+sysCall = [[PTBR + 2 * ((userSP - 5)/512)] * 512 + ((userSP - 5) % 512)];
+
 breakpoint;
 
-alias sysCall R1;
-sysCall = [[PTBR + 2 * ((userSP - 4)/512)] * 512 + ((userSP - 4) % 512)];
+alias retValAddr R2;
+retValAddr = [PTBR + 2 * ((userSP - 1)/512)] * 512 + ((userSP - 1) % 512);
 
 if (sysCall == INT_GETPID) then
-	[[PTBR + 2 * ((userSP - 1)/512)] * 512 + ((userSP - 1) % 512)] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 1];
-	ireturn;
+	[retValAddr] = [SYSTEM_STATUS_TABLE + 1];
 endif;
 
 if (sysCall == INT_GETPPID) then
-	[[PTBR + 2 * ((userSP - 1)/512)] * 512 + ((userSP - 1) % 512)] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 2];
-	ireturn;
+	[retValAddr] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 2];
 endif;
 
 if (sysCall == INT_WAIT) then
 	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = INT_WAIT;
-	alias tarPID R2;
-	tarPID = [PTBR + 2 * ((userSP - 3)/512)] * 512 + ((userSP - 3) % 512);
-	if (tarPID < 0 || tarPID >= MAX_PROC_NUM || tarPID == [SYSTEM_STATUS_TABLE + 1] || [PROCESS_TABLE + (tarPID * 16) + 4] == "TERMINATED") then
+	alias tarPID R3;
+	tarPID = [[PTBR + 2 * ((userSP - 3)/512)] * 512 + ((userSP - 3) % 512)];
+
+	if (tarPID < 0 || tarPID >= MAX_PROC_NUM || tarPID == [SYSTEM_STATUS_TABLE + 1] || [PROCESS_TABLE + (tarPID * 16) + 4] == TERMINATED) then
 		[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
-		[[PTBR + 2 * ((userSP - 1)/512)] * 512 + ((userSP - 1) % 512)] = -1;
+		[retValAddr] = -1;
 		ireturn;
 	endif;
 
@@ -34,8 +36,7 @@ if (sysCall == INT_WAIT) then
 	call SCHEDULER;
 
 	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
-	[[PTBR + 2 * ((userSP - 1)/512)] * 512 + ((userSP - 1) % 512)] = 0;
-	ireturn;
+	[retValAddr] = 0;
 endif;
 
 if (sysCall == INT_SIGNAL) then
@@ -51,8 +52,10 @@ if (sysCall == INT_SIGNAL) then
 	endwhile;
 
 	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
-        [[PTBR + 2 * ((userSP - 1)/512)] * 512 + ((userSP - 1) % 512)] = 0;
-        ireturn;
+        [retValAddr] = 0;
 endif;
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
 
 ireturn;
