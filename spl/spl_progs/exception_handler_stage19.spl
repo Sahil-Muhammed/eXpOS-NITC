@@ -17,7 +17,7 @@ if (EC > 0 || userSP >= (PTLR * 512 - 1)) then
 	call MOD_1;
 	multipop(R0);
 	
-	breakpoint;	
+	// breakpoint;	
 	call SCHEDULER;
 endif;
 
@@ -32,7 +32,7 @@ if (EPN > 3 && EPN < 8) then
 	[PTBR + 2*EPN] = R0;
 	[PTBR + (2*EPN) + 1] = "1100";
 	multipop(R0);
-	breakpoint;
+	// breakpoint;
 endif;
 if (EPN > 1 && EPN < 4) then
 	multipush(R0);
@@ -54,7 +54,7 @@ restore;
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
 SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
 SP = SP + 1;
-[[PTBR + (2 * (SP / 512))] + (SP % 512)] = EIP;
+[[PTBR + (2 * (SP / 512))] * 512 + (SP % 512)] = EIP;
 
 ireturn;
 

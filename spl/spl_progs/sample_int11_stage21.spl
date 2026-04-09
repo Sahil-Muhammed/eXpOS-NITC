@@ -6,7 +6,7 @@ SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
 alias sysCall R1;
 sysCall = [[PTBR + 2 * ((userSP - 5)/512)] * 512 + ((userSP - 5) % 512)];
 
-breakpoint;
+// breakpoint;
 
 alias retValAddr R2;
 retValAddr = [PTBR + 2 * ((userSP - 1)/512)] * 512 + ((userSP - 1) % 512);
@@ -22,7 +22,7 @@ endif;
 if (sysCall == INT_WAIT) then
 	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = INT_WAIT;
 	alias tarPID R3;
-	tarPID = [[PTBR + 2 * ((userSP - 3)/512)] * 512 + ((userSP - 3) % 512)];
+	tarPID = [[PTBR + 2 * ((userSP - 4)/512)] * 512 + ((userSP - 4) % 512)];
 
 	if (tarPID < 0 || tarPID >= MAX_PROC_NUM || tarPID == [SYSTEM_STATUS_TABLE + 1] || [PROCESS_TABLE + (tarPID * 16) + 4] == TERMINATED) then
 		[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;

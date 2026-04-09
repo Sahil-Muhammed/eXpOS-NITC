@@ -51,9 +51,9 @@ if (functionNum == ACQUIRE_SEMAPHORE) then
 	alias i R3;
 	i = 0;
 	while (i < MAX_SEM_COUNT) do
-		if ([SEMAPHORE_TABLE + (currentPID * 4) + 1] == 0) then
-			[SEMAPHORE_TABLE + (currentPID * 4) + 1] = 1;
-			[SEMAPHORE_TABLE + (currentPID * 4)] = -1;
+		if ([SEMAPHORE_TABLE + (i * 4) + 1] == 0) then
+			[SEMAPHORE_TABLE + (i * 4) + 1] = 1;
+			[SEMAPHORE_TABLE + (i * 4)] = -1;
 			break;
 		endif;
 		i = i + 1;

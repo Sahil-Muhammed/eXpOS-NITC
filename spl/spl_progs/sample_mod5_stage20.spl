@@ -59,7 +59,7 @@ if (state == CREATED) then
 	ireturn;
 endif;
 
-state = RUNNING;
+[PROCESS_TABLE + (newPID * 16) + 4] = RUNNING;
 // could be POP BP; or something else (not sure)
 multipop(BP);
 return;

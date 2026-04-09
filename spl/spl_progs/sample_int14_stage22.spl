@@ -5,73 +5,82 @@ SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
 
 alias sysCall R1;
 sysCall = [[PTBR + 2 * ((userSP - 5)/512)] * 512 + ((userSP - 5) % 512)];
-
-breakpoint;
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = sysCall;
+// breakpoint;  // TRACE: Entry to INT 14
 
 alias retValAddr R2;
 retValAddr = [PTBR + 2 * ((userSP - 1)/512)] * 512 + ((userSP - 1) % 512);
 
+alias currProcessTable R6;
+currProcessTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
+
+alias UAreaPage R7;
+UAreaPage = [currProcessTable + 11];
+
 if (sysCall == INT_SEMLOCK) then
-	// set mode flag to 19
-	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 19;
 	
 	alias semDesc R3;
         semDesc = [[PTBR + 2 * ((userSP - 4)/512)] * 512 + ((userSP - 4) % 512)];
 
         // check if semDesc is within bounds
         if (semDesc < 0 || semDesc > 7) then
+		[currProcessTable + 9] = 0;
+	        SP = [currProcessTable + 13];
                 [retValAddr] = -1;
-                ireturn;
+		ireturn;
         endif;
 
         // check if resource identifier field is SEMAPHORE
-        if ([[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 + RESOURCE_TABLE_OFFSET + (2 * semDesc)] != SEMAPHORE) then
-                [retValAddr] = -1;
+        if ([UAreaPage * 512 + RESOURCE_TABLE_OFFSET + (2 * semDesc)] != SEMAPHORE) then
+	        [currProcessTable + 9] = 0;
+	        SP = [currProcessTable + 13];
+        	[retValAddr] = -1;
                 ireturn;
         endif;
 
 	alias semIndex R4;
-	semIndex = [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13] * 512 + (RESOURCE_TABLE_OFFSET) + (2 * semDesc) + 1];
+	semIndex = [UAreaPage * 512 + (RESOURCE_TABLE_OFFSET) + (2 * semDesc) + 1];
 
-	while ([SEMAPHORE_TABLE + (semIndex * 4)] != [SYSTEM_STATUS_TABLE + 1]) do
-		[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 4] = WAIT_SEMAPHORE;
-		[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 5] = [SEMAPHORE_TABLE + (semDesc * 4)];
-		multipush(R0, R1, R2, R3, R4);
+	while ([SEMAPHORE_TABLE + (semIndex * 4)] != [SYSTEM_STATUS_TABLE + 1] && [SEMAPHORE_TABLE + (semIndex * 4)] != -1) do
+		[currProcessTable + 4] = WAIT_SEMAPHORE;
+		[currProcessTable + 5] = semIndex;
+		multipush(R0, R1, R2, R3, R4, R5, R6, R7);
 		call SCHEDULER;
-		multipop(R0, R1, R2, R3, R4);
+		multipop(R0, R1, R2, R3, R4, R5, R6, R7);
 	endwhile;
 
 	[SEMAPHORE_TABLE + (semIndex * 4)] = [SYSTEM_STATUS_TABLE + 1];
-
-	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
-
-	[retValAddr] = 0;
-	ireturn;
 endif;
 
 if (sysCall == INT_SEMUNLOCK) then
-	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 20;
+	[currProcessTable + 9] = 20;
 
 	alias semDesc R3;
         semDesc = [[PTBR + 2 * ((userSP - 4)/512)] * 512 + ((userSP - 4) % 512)];
 
         // check if semDesc is within bounds
         if (semDesc < 0 || semDesc > 7) then
-                [retValAddr] = -1;
+        	[currProcessTable + 9] = 0;
+	        SP = [currProcessTable + 13];
+	        [retValAddr] = -1;
                 ireturn;
         endif;
 
         // check if resource identifier field is SEMAPHORE
-        if ([[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 + RESOURCE_TABLE_OFFSET + (2 * semDesc)] != SEMAPHORE) then
-                [retValAddr] = -1;
+        if ([UAreaPage * 512 + RESOURCE_TABLE_OFFSET + (2 * semDesc)] != SEMAPHORE) then
+        	[currProcessTable + 9] = 0;
+	        SP = [currProcessTable + 13];
+	        [retValAddr] = -1;
                 ireturn;
         endif;
 
 	alias semIndex R4;
-	semIndex = [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 + (RESOURCE_TABLE_OFFSET) + (2 * semDesc) + 1];
+	semIndex = [UAreaPage * 512 + (RESOURCE_TABLE_OFFSET) + (2 * semDesc) + 1];
 
 	if ([SEMAPHORE_TABLE + (semIndex * 4)] != -1) then
 		if ([SEMAPHORE_TABLE + (semIndex * 4)] != [SYSTEM_STATUS_TABLE + 1]) then
+			[currProcessTable + 9] = 0;
+		        SP = [currProcessTable + 13];
 			[retValAddr] = -2;
 			ireturn;
 		endif;
@@ -89,8 +98,10 @@ if (sysCall == INT_SEMUNLOCK) then
 		endwhile;
 	endif;
 
-	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
-	SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
-	[retValAddr] = 0;
-	ireturn;
 endif;
+
+[currProcessTable + 9] = 0;
+SP = [currProcessTable + 13];
+[retValAddr] = 0;
+ireturn;
+

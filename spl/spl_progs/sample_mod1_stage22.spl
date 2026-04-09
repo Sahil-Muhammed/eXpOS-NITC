@@ -31,6 +31,20 @@ if (functionNum == FREE_USER_AREA_PAGE) then
 	
 	// call Release Page function with user area page as argument
 
+	alias i R4;
+        i = 0;
+        while (i < 8) do
+                if ([UAreaPage * 512 + RESOURCE_TABLE_OFFSET + (2 * i)] == SEMAPHORE && [UAreaPage * 512 + RESOURCE_TABLE_OFFSET + (2 * i) + 1] > -1) then
+                        multipush(R1, R2, R3, R4);
+                        R1 = RELEASE_SEMAPHORE;
+                        // R2 = [SYSTEM_STATUS_TABLE + 1]; // already contains correct value
+                        R3 = [UAreaPage * 512 + RESOURCE_TABLE_OFFSET + (2 * i) + 1];
+                        call MOD_0;
+                        multipop(R1, R2, R3, R4);
+                endif;
+                i = i + 1;
+        endwhile;	
+
 	multipush(R1, R2, R3);
 	
 	R1 = RELEASE_PAGE;
@@ -40,20 +54,6 @@ if (functionNum == FREE_USER_AREA_PAGE) then
 	multipop(R1, R2, R3);	
 
 	// release valid semaphores help by process
-
-	alias i R4;
-	i = 0;
-	while (i < 8) do
-		if ([UAreaPage * 512 + RESOURCE_TABLE_OFFSET + (2 * i)] == SEMAPHORE && [UAreaPage * 512 + RESOURCE_TABLE_OFFSET + (2 * i) + 1] > -1) then
-			multipush(R1, R2, R3, R4);
-			R1 = RELEASE_SEMAPHORE;
-			R2 = [SYSTEM_STATUS_TABLE + 1];
-			R3 = [UAreaPage * 512 + RESOURCE_TABLE_OFFSET + (2 * i) + 1];
-			call MOD_0;
-			multipop(R1, R2, R3, R4);  
-		endif;
-		i = i + 1;
-	endwhile;
 
 	return;
 endif;

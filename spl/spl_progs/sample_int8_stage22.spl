@@ -1,8 +1,15 @@
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 8;
 
+alias retValAddr R7;
+retValAddr = [PTBR + 2 * (SP - 1) / 512] * 512 + ((SP - 1) % 512);
+
+alias parentProcessTable R6;
+parentProcessTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
+
+
 // switch to kernel stack
-[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
-SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+[parentProcessTable + 13] = SP;
+SP = [parentProcessTable + 11] * 512 - 1;
 
 alias pte R10;
 
@@ -13,62 +20,57 @@ pte = R0;
 alias childPT R14;
 childPT = PROCESS_TABLE + (pte * 16);
 
-alias parentPT R15;
-parentPT = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
+
 if (pte == -1) then
+	[parentProcessTable + 9] = 0;
+	SP = [parentProcessTable + 13];
 	ireturn;
 endif;
 
 if ([PTBR + (2*2)] == -1) then
 	// allocate 2 pages for heap since it wasn't allocated earlier
-	multipush(R0, R14, R15);
 	R1 = GET_FREE_PAGE;
+	R2 = [SYSTEM_STATUS_TABLE + 1];
 	call MOD_2;
 	[PTBR + 4] = R0;
 	[PTBR + 5] = "0110";
-	multipop(R0, R14, R15);
 	
-	multipush(R0, R14, R15);
 	R1 = GET_FREE_PAGE;
+	R2 = [SYSTEM_STATUS_TABLE + 1];
 	call MOD_2;
 	[PTBR + 6] = R0;
 	[PTBR + 7] = "0110";
-	multipop(R0, R14, R15);
 endif;
 
-multipush(R10, R14, R15);
 R1 = GET_FREE_PAGE;
+R2 = [SYSTEM_STATUS_TABLE + 1];
 call MOD_2;
-multipop(R10, R14, R15);
 [childPT + 11] = R0;
 
-multipush(R10, R14, R15);
 R1 = GET_FREE_PAGE;
+R2 = [SYSTEM_STATUS_TABLE + 1];
 call MOD_2;
-multipop(R10, R14, R15);
 [PAGE_TABLE_BASE + (pte*20) + 16] = R0;
-[PAGE_TABLE_BASE + (pte*20) + 17] = "0110";
+[PAGE_TABLE_BASE + (pte*20) + 17] = [PTBR + 17];
 
-multipush(R10);
 R1 = GET_FREE_PAGE;
+R2 = [SYSTEM_STATUS_TABLE + 1];
 call MOD_2;
-multipop(R10);
 [PAGE_TABLE_BASE + (pte*20) + 18] = R0;
-[PAGE_TABLE_BASE + (pte*20) + 19] = "0110";
+[PAGE_TABLE_BASE + (pte*20) + 19] = [PTBR + 19];
 
 // copy parent's process table entry fields
 
-[childPT + 3] = [parentPT + 3];
-[childPT + 4] = [parentPT + 4];
-[childPT + 5] = [parentPT + 5];
-[childPT + 6] = [parentPT + 6];
-[childPT + 7] = [parentPT + 7];
-[childPT + 9] = [parentPT + 9];
-[childPT + 10] = [parentPT + 10];
-[childPT + 13] = [parentPT + 13];
+[childPT + 3] = [parentProcessTable + 3];
+[childPT + 4] = CREATED;
+[childPT + 5] = [parentProcessTable + 5];
+[childPT + 6] = [parentProcessTable + 6];
+[childPT + 7] = [parentProcessTable + 7];
+[childPT + 9] = 0;
+[childPT + 10] = [parentProcessTable + 10];
+[childPT + 13] = [parentProcessTable + 13];
 
 [childPT + 2] = [SYSTEM_STATUS_TABLE + 1];
-[childPT + 9] = 0;
 [childPT + 0] = 0;
 [childPT + 1] = pte;
 [childPT + 12] = 0;
@@ -77,7 +79,7 @@ multipop(R10);
 
 alias i R11;
 i = 0;
-while (i < 9) do
+while (i < 10) do
 	[DISK_MAP_TABLE + (pte*10) + i] = [DISK_MAP_TABLE + ([SYSTEM_STATUS_TABLE + 1]*10 + i)];
 	i = i + 1;
 endwhile;
@@ -87,7 +89,7 @@ i = 0;
 alias UAreaPageChild R12;
 UAreaPageChild = [PROCESS_TABLE + (pte*16) + 11];
 alias UAreaPageParent R13;
-UAreaPageParent = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11];
+UAreaPageParent = [parentProcessTable + 11];
 
 alias resTableAddrChild R9;
 resTableAddrChild = UAreaPageChild * 512 + RESOURCE_TABLE_OFFSET;
@@ -96,7 +98,12 @@ resTableAddrParent = UAreaPageParent * 512 + RESOURCE_TABLE_OFFSET;
 
 while (i < 8) do
 	if ([resTableAddrParent + (2*i)] == SEMAPHORE) then
-		[SEMAPHORE_TABLE + [resTableAddrParent + (2*i) + 1]] = [SEMAPHORE_TABLE + [resTableAddrParent + (2*i) + 1]] + 1;
+		alias processCountAddr R5;
+		processCountAddr = SEMAPHORE_TABLE + ([resTableAddrParent + (2*i) + 1] * 4) + 1;
+		[processCountAddr] = [processCountAddr] + 1;
+	endif;
+	if ([resTableAddrParent + (2*i)] == FILE) then
+		[OPEN_FILE_TABLE + [resTableAddrParent + (2*i) + 1]] = [OPEN_FILE_TABLE + [resTableAddrParent + (2*i) + 1]] + 1;
 	endif;
 	[resTableAddrChild + (2*i)] = [resTableAddrParent + (2*i)];
 	[resTableAddrChild + (2*i) + 1] = [resTableAddrParent + (2*i) + 1];
@@ -105,21 +112,9 @@ endwhile;
 
 i = 0;
 while (i < 8) do
-	if ([resTableAddrParent + (2*i)] != -1) then
-		if ([resTableAddrParent + (2*i)] == FILE) then
-			[OPEN_FILE_TABLE + [resTableAddrParent + (2*i) + 1]] = [OPEN_FILE_TABLE + [resTableAddrParent + (2*i) + 1]] + 1;
-		else
-			[SEMAPHORE_TABLE + [resTableAddrParent + (2*i) + 1]] = [SEMAPHORE_TABLE + [resTableAddrParent + (2*i) + 1]] + 1;
-		endif;
-	endif;
-	i = i + 1;
-endwhile;
-
-i = 0;
-while (i < 8) do
 	[PAGE_TABLE_BASE + (pte * 20) + (2*i)] = [PTBR + (2*i)];
 	[PAGE_TABLE_BASE + (pte * 20) + (2*i) + 1] = [PTBR + (2 * i) + 1];
-	if (i > 1) then
+	if (i > 1 && [PTBR + (2 * i)] != -1) then
 		[MEMORY_FREE_LIST + [PTBR + (2*i)]] = [MEMORY_FREE_LIST + [PTBR + (2*i)]] + 1;
 	endif;
 	i = i + 1;
@@ -130,33 +125,42 @@ endwhile;
 // done earlier
 
 i = 0;
+alias ChildStack R4;
+ChildStack = [PAGE_TABLE_BASE + (pte * 20) + 16] * 512;
+alias ParentStack R3;
+ParentStack = [PTBR + 16] * 512;
 while (i < PAGE_SIZE) do
-	[[PAGE_TABLE_BASE + (pte * 20) + 16] * 512 + i] = [[PTBR + 16] * 512 + i];
+	[ChildStack + i] = [ParentStack + i];
 	i = i + 1;
 endwhile; 
 
-[[childPT + 11] * 512] = BP;
+i = 0;
+ChildStack = [PAGE_TABLE_BASE + (pte * 20) + 18] * 512;
+ParentStack = [PTBR + 18] * 512;
+while (i < PAGE_SIZE) do
+        [ChildStack + i] = [ParentStack + i];
+        i = i + 1;
+endwhile;
+
+SP = [childPT + 11] * 512 - 1;
+multipush(BP);
+
+[retValAddr] = pte;
 
 // re-use i to store logical address of return address in stack (child)
-
+// MUST use child's own page table (PAGE_TABLE_BASE+pte*20), NOT PTBR (parent's),
+// because child has NEW physical stack pages — PTBR would write to parent's stack
+// and overwrite the parent's return value (pte) we just set above.
 i = [childPT + 13];
-[[PAGE_TABLE_BASE + (pte*20) + 2*((i-1)/512)]*512 + ((i-1) % 512)] = 0;
+[[PAGE_TABLE_BASE + (pte*20) + 2 * ((i - 1) / 512)] * 512 + ((i - 1) % 512)] = 0;
 
-// re-use i to store logical address of return address in stack (parent)
-
-i = [parentPT + 13];
-[[PTBR + 2*((i-1)/512)]*512 + ((i-1) % 512)] = pte;
-
-// set state of child to created
-
-[childPT + 4] = CREATED;
+// state of child already set to CREATED at start of fork
 
 // set mode flag of parent process to 0
 
-[parentPT + 9] = 0;
+[parentProcessTable + 9] = 0;
 
 // switch stack to user stack and return to parent process
 
-SP = [parentPT + 13];
-
+SP = [parentProcessTable + 13];
 ireturn;

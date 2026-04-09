@@ -2,6 +2,8 @@ alias currPID R0;
 currPID = [SYSTEM_STATUS_TABLE + 1];
 [PROCESS_TABLE + currPID*16 + 9] = 10;
 
+// breakpoint;  // TRACE: Exit syscall
+
 [PROCESS_TABLE + currPID*16 + 13] = SP;
 SP = [PROCESS_TABLE + currPID*16 + 11] * 512 - 1;
 
@@ -9,6 +11,6 @@ multipush(R0);
 R1 = EXIT_PROCESS;
 R2 = currPID;
 call MOD_1;
-multipush(R0);
+multipop(R0);
 
 call SCHEDULER;

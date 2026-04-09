@@ -6,27 +6,31 @@ SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
 alias sysCall R1;
 sysCall = [[PTBR + 2 * ((userSP - 5)/512)] * 512 + ((userSP - 5) % 512)];
 
-breakpoint;
 
 alias retValAddr R2;
 retValAddr = [PTBR + 2 * ((userSP - 1)/512)] * 512 + ((userSP - 1) % 512);
 
-if (sysCall == INT_SEMGET) then
-	// set mode flag to 17
+alias currProcessTable R4;
+currProcessTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
 
-	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 17;
+alias UAreaPage R5;
+UAreaPage = [currProcessTable + 11];
+
+if (sysCall == INT_SEMGET) then
 
 	alias i R3;
 	i = 0;
-	while (i < 16) do
-		if ([[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 + RESOURCE_TABLE_OFFSET + 2*i] == -1) then
-			[[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 + RESOURCE_TABLE_OFFSET + 2*i] = SEMAPHORE;
+	while (i < 8) do
+		if ([UAreaPage * 512 + RESOURCE_TABLE_OFFSET + 2*i] == -1) then
+			[UAreaPage * 512 + RESOURCE_TABLE_OFFSET + 2*i] = SEMAPHORE;
 			break;
 		endif;
 		i = i + 1;
 	endwhile;
 
-	if (i == 16) then
+	if (i == 8) then
+		[currProcessTable + 9] = 0;
+	        SP = [currProcessTable + 13];
 		[retValAddr] = -1;
 		ireturn;
 	endif;
@@ -39,6 +43,9 @@ if (sysCall == INT_SEMGET) then
 	call MOD_0;
 	
 	if (R0 == -1) then
+		multipop(R0, R1, R2, R3);
+        	SP = [currProcessTable + 13];
+	        [currProcessTable + 9] = 0;
 		[retValAddr] = -2;
 		ireturn;
 	endif;
@@ -49,51 +56,47 @@ if (sysCall == INT_SEMGET) then
 
 	// pop to get the value of free index in per process table
 	multipop(R0, R1, R2, R3);
-
-	[[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 + RESOURCE_TABLE_OFFSET + 2*i + 1] = R10;
-
-	// SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
-	// [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+	[UAreaPage * 512 + RESOURCE_TABLE_OFFSET + 2*i] = SEMAPHORE;
+	[UAreaPage * 512 + RESOURCE_TABLE_OFFSET + 2*i + 1] = R10;
 
 	[retValAddr] = i;
-	// ireturn;
 endif;
 
 if (sysCall == INT_SEMRELEASE) then
-	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 17;
 
 	alias semDesc R3;
 	semDesc = [[PTBR + 2 * ((userSP - 4)/512)] * 512 + ((userSP - 4) % 512)];
 	
 	// check if semDesc is within bounds
 	if (semDesc < 0 || semDesc > 7) then
+		[currProcessTable + 9] = 0;
+	        SP = [currProcessTable + 13];
 		[retValAddr] = -1;
 		ireturn;
 	endif;
 
 	// check if resource identifier field is SEMAPHORE
-	if ([[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 + RESOURCE_TABLE_OFFSET + (2 * semDesc)] != SEMAPHORE) then
+	if ([UAreaPage * 512 + RESOURCE_TABLE_OFFSET + (2 * semDesc)] != SEMAPHORE) then
+		[currProcessTable + 9] = 0;
+	        SP = [currProcessTable + 13];
 		[retValAddr] = -1;
 		ireturn;
 	endif;
 
 	multipush(R0, R1, R2, R3);
 	R1 = RELEASE_SEMAPHORE;
-	R3 = [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 + RESOURCE_TABLE_OFFSET + (2 * semDesc) + 1];
+	R3 = [UAreaPage * 512 + RESOURCE_TABLE_OFFSET + (2 * semDesc) + 1];
 	R2 = [SYSTEM_STATUS_TABLE + 1];
 	call MOD_0;
 	multipop(R0, R1, R2, R3);
 
 	// invalidate entry in per-process resource table
-	[[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 + RESOURCE_TABLE_OFFSET + (2 * semDesc)] = -1;
-	[[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 + RESOURCE_TABLE_OFFSET + (2 * semDesc) + 1] = -1;
-
-	// SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
-        // [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
-	// ireturn;	
+	[UAreaPage * 512 + RESOURCE_TABLE_OFFSET + (2 * semDesc)] = -1;
+	[UAreaPage * 512 + RESOURCE_TABLE_OFFSET + (2 * semDesc) + 1] = -1;
+	[retValAddr] = 0;
 endif;
 
-[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
-SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+[currProcessTable + 9] = 0;
+SP = [currProcessTable + 13];
 
 ireturn;
