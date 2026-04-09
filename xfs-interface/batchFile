@@ -20,7 +20,6 @@ load --module 0 $HOME/myexpos/spl/spl_progs/sample_mod0_stage22.xsm
 load --module 1 $HOME/myexpos/spl/spl_progs/sample_mod1_stage22.xsm
 load --module 2 $HOME/myexpos/spl/spl_progs/sample_mod2_stage19.xsm
 load --int=disk $HOME/myexpos/spl/spl_progs/disk_interrupt_handler_stage18.xsm
-load --exec $HOME/myexpos/expl/samples/parent.xsm
-load --exec $HOME/myexpos/expl/samples/child.xsm
+load --exec $HOME/myexpos/expl/samples/mrgC.xsm
 load --exhandler $HOME/myexpos/spl/spl_progs/exception_handler_stage19.xsm
 exit
