@@ -60,6 +60,7 @@ if (function == INT_CREATE) then
 	[ROOT_FILE + (i * 8) + 3] = username;
 	[ROOT_FILE + (i * 8) + 4] = perm;
 	breakpoint;
+	[retAddr] = 0;	
 endif;
 
 if (function == INT_DELETE) then
@@ -79,12 +80,14 @@ if (function == INT_DELETE) then
 	if (i == MAX_FILE_NUM) then
 		[retAddr] = 0;
 		[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+		SP = [procTable + 13];
 		ireturn;
 	endif;
 
 	if ([INODE_TABLE + (i * 16)] != DATA) then
 		[retAddr] = -1;
 		[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+		SP = [procTable + 13];
 		ireturn;
 	endif;
 
@@ -92,6 +95,7 @@ if (function == INT_DELETE) then
 		if ([procTable + 3] != 0 && [procTable + 3] != [INODE_TABLE + (i * 16) + 3]) then
 			[retAddr] = -1;
 			[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+			SP = [procTable + 13];
 			ireturn;
 		endif;	
 	endif;
@@ -131,22 +135,32 @@ if (function == INT_DELETE) then
 	alias j R5;
 	j = 0;
 	while (j < 4) do 
-		// INODE_MAX_BLOCK_NUM = 4
-		// doubtful?
-		if ([BUFFER_TABLE + (j * 4)] != -1 && [BUFFER_TABLE + (j * 4) + 1] == 1) then
-			[BUFFER_TABLE + (j * 4) + 1] = 0;
-		endif;	
-		multipush(R0, R1, R2, R3, R4, R5);
-		
-		R1 = RELEASE_BLOCK;
-		R2 = [BUFFER_TABLE + (j * 4)];
-		R3 = [SYSTEM_STATUS_TABLE + 1];
+		if ([INODE_TABLE + (i * 16) + 8 + j] != -1) then
+			// check if the disk block is loaded into a buffer and dirty bit is set
+			alias k R6;
+			k = 0;
+			while (k < MAX_BUFFER) do
+				if ([BUFFER_TABLE + (k * 4)] == [INODE_TABLE + (i * 16) + 8 + j] && [BUFFER_TABLE + (k * 4) + 1] == 1) then
+					[BUFFER_TABLE + (k * 4) + 1] = 0;
+				endif;
+				k = k + 1;
+			endwhile;
 
-		call MOD_2;
-		
-		multipush(R0, R1, R2, R3, R4, R5);
+			multipush(R0, R1, R2, R3, R4, R5);
+			
+			R1 = RELEASE_BLOCK;
+			R2 = [INODE_TABLE + (i * 16) + 8 + j];
+			R3 = [SYSTEM_STATUS_TABLE + 1];
+
+			call MOD_2;
+			
+			multipop(R0, R1, R2, R3, R4, R5);
+		endif;
 		j = j + 1;
 	endwhile;
+
+	// invalidate inode table entry
+	[INODE_TABLE + (i * 16) + 1] = -1;
 
 	// update root file
 	
@@ -155,7 +169,7 @@ if (function == INT_DELETE) then
 	rootFile = ROOT_FILE + (i * 8);
 
 	while (j < 5) do
-		[ROOT_FILE + (i * 8) + j] = -1;
+		[rootFile + j] = -1;
 		j = j + 1;
 	endwhile;
 
@@ -167,10 +181,11 @@ if (function == INT_DELETE) then
 	
 	call MOD_0;
 
-	multipush(R0, R1, R2, R3, R4, R5, R6); 
+	multipop(R0, R1, R2, R3, R4, R5, R6); 
 
 	SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
 	[retAddr] = 0;
+	breakpoint;
 endif;
 
 // reset the mode flag
