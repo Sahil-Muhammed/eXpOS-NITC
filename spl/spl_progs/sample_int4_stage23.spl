@@ -55,7 +55,7 @@ if (function == INT_CREATE) then
 	
 	// get username from user table
 	alias username R6;
-	username = [USER_TABLE + [inodeEntry + 3]];
+	username = [USER_TABLE + ([inodeEntry + 3] * 2)];
 	
 	[ROOT_FILE + (i * 8) + 3] = username;
 	[ROOT_FILE + (i * 8) + 4] = perm;

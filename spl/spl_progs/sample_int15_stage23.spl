@@ -47,6 +47,8 @@ R2 = PID;
 R3 = 62;
 R4 = 5;
 
+call MOD_4;
+
 multipop(R0, R1, R2);
 
 halt;
