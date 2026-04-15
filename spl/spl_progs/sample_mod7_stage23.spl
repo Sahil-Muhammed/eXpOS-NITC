@@ -41,6 +41,8 @@ loadi(6, 19);
 loadi(7, 20);
 // load disk free list
 loadi(61, 2);
+// load root file
+loadi(62, 5);
 // load fork (INT 8)
 loadi(18, 31);
 loadi(19, 32);
