@@ -1,0 +1,178 @@
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 1;
+
+alias function R0;
+function = [[PTBR + 2 * ((SP - 5) / 512)] * 512 + ((SP - 5) % 512)];
+
+alias fileName R1;
+fileName = [[PTBR + 2 * ((SP - 4) / 512)] * 512 + ((SP - 4) % 512)];
+
+alias i R2;
+i = 0;
+
+alias retAddr R3;
+retAddr = [PTBR + 2 * ((SP - 1) / 512)] * 512 + ((SP - 1) % 512);
+
+if (function == INT_CREATE) then
+	
+	// check inode table if file already exists
+	while (i < MAX_FILE_NUM) do
+		if ([INODE_TABLE + (i * 16) + 1] == -1) then
+			break;
+		endif;
+		if ([INODE_TABLE + (i * 16) + 1] == fileName) then
+			[retAddr] = 0;
+			ireturn;
+		endif;
+		i = i + 1;
+	endwhile;
+
+	// reached here means no file with given filename exists
+
+	alias inodeEntry R4;
+	inodeEntry = INODE_TABLE + (i * 16);
+
+	[inodeEntry + 0] = 2;
+	[inodeEntry + 1] = fileName;
+	[inodeEntry + 2] = 0; // file size = 0
+
+	[inodeEntry + 8] = -1;
+	[inodeEntry + 9] = -1;
+	[inodeEntry + 10] = -1;
+	[inodeEntry + 11] = -1;
+
+	// set user id
+	[inodeEntry + 3] = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 3];
+	
+	alias perm R5;
+	perm = [[PTBR + 2 * ((SP - 3) / 512)] * 512 + ((SP - 3) % 512)];
+	
+	// set permission
+	[inodeEntry + 4] = perm;
+	
+	[ROOT_FILE + (i * 8) + 0] = fileName;
+	[ROOT_FILE + (i * 8) + 1] = 0;
+	[ROOT_FILE + (i * 8) + 2] = 2; // file type - data
+	
+	// get username from user table
+	alias username R6;
+	username = [USER_TABLE + [inodeEntry + 3]];
+	
+	[ROOT_FILE + (i * 8) + 3] = username;
+	[ROOT_FILE + (i * 8) + 4] = perm;
+	breakpoint;
+endif;
+
+if (function == INT_DELETE) then
+	alias procTable R4;
+	procTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
+	[procTable + 9] = 4;
+	[procTable + 13] = SP;
+	SP = [procTable + 11] * 512 - 1;
+
+	while (i < MAX_FILE_NUM) do
+		if ([INODE_TABLE + (i * 16) + 1] == fileName) then
+			break;
+		endif;
+		i = i + 1;
+	endwhile;
+
+	if (i == MAX_FILE_NUM) then
+		[retAddr] = 0;
+		[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+		ireturn;
+	endif;
+
+	if ([INODE_TABLE + (i * 16)] != DATA) then
+		[retAddr] = -1;
+		[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+		ireturn;
+	endif;
+
+	if ([INODE_TABLE + (i * 16) + 3] == 0) then
+		if ([procTable + 3] != 0 && [procTable + 3] != [INODE_TABLE + (i * 16) + 3]) then
+			[retAddr] = -1;
+			[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+			ireturn;
+		endif;	
+	endif;
+
+	// acquire inode
+
+	multipush(R0, R1, R2, R3, R4);
+
+	R1 = ACQUIRE_INODE;
+	R2 = i;
+	R3 = [SYSTEM_STATUS_TABLE + 1];
+
+	call MOD_0;
+
+	multipop(R0, R1, R2, R3, R4);
+
+	// check file open count in file status table
+
+	if ([FILE_STATUS_TABLE + (i * 4) + 1] != -1) then
+		// file is open and cannot be deleted
+
+		multipush(R0, R1, R2, R3, R4);
+		
+		R1 = RELEASE_INODE;
+		R2 = i;
+		R3 = [SYSTEM_STATUS_TABLE + 1];
+
+		call MOD_0;
+
+		multipop(R0, R1, R2, R3, R4);
+
+		[retAddr] = -2;
+		[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+		ireturn;
+	endif;
+
+	alias j R5;
+	j = 0;
+	while (j < 4) do 
+		// INODE_MAX_BLOCK_NUM = 4
+		// doubtful?
+		if ([BUFFER_TABLE + (j * 4)] != -1 && [BUFFER_TABLE + (j * 4) + 1] == 1) then
+			[BUFFER_TABLE + (j * 4) + 1] = 0;
+		endif;	
+		multipush(R0, R1, R2, R3, R4, R5);
+		
+		R1 = RELEASE_BLOCK;
+		R2 = [BUFFER_TABLE + (j * 4)];
+		R3 = [SYSTEM_STATUS_TABLE + 1];
+
+		call MOD_2;
+		
+		multipush(R0, R1, R2, R3, R4, R5);
+		j = j + 1;
+	endwhile;
+
+	// update root file
+	
+	j = 0;
+	alias rootFile R6;
+	rootFile = ROOT_FILE + (i * 8);
+
+	while (j < 5) do
+		[ROOT_FILE + (i * 8) + j] = -1;
+		j = j + 1;
+	endwhile;
+
+	multipush(R0, R1, R2, R3, R4, R5, R6);
+
+	R1 = RELEASE_INODE;
+	R2 = i;
+	R3 = [SYSTEM_STATUS_TABLE + 1];
+	
+	call MOD_0;
+
+	multipush(R0, R1, R2, R3, R4, R5, R6); 
+
+	SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+	[retAddr] = 0;
+endif;
+
+// reset the mode flag
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+ireturn;

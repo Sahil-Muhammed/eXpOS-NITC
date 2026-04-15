@@ -12,11 +12,10 @@ process_table_entry = PROCESS_TABLE + currPID*16;
 
 // Iterate through the Process Table entries, starting from the succeeding entry of the current process to find a process in READY or CREATED state.
 
-alias newPID R5;
+alias newPID R4;
 alias pte R3;
-alias flag R4;
 newPID = 0;
-pte = currPID + 1;
+pte = (currPID + 1) % 16;
 
 while (pte != currPID) do
 	if (pte == 0) then
@@ -27,7 +26,7 @@ while (pte != currPID) do
 		newPID = pte;
 		break;
 	endif;
-        pte = (pte + 1) % 16;
+    pte = (pte + 1) % 16;
 endwhile; 
 
 if (pte == currPID) then
@@ -35,31 +34,29 @@ if (pte == currPID) then
 	newPID = 0;
 endif;
 
-alias userAreaPage R6;
+alias userAreaPage R5;
+alias newProcessTableEntry R6;
 alias kptr R7;
 
-userAreaPage = [PROCESS_TABLE + newPID*16 + 11];
-kptr = [PROCESS_TABLE + newPID*16 + 12];
+newProcessTableEntry = PROCESS_TABLE + newPID*16;
+userAreaPage = [newProcessTableEntry + 11];
+kptr = [newProcessTableEntry + 12];
 
 SP = userAreaPage * 512 + kptr;
 
-PTBR = [PROCESS_TABLE + newPID*16 + 14];
-PTLR = [PROCESS_TABLE + newPID*16 + 15];
+PTBR = [newProcessTableEntry + 14];
+PTLR = [newProcessTableEntry + 15];
 
 [SYSTEM_STATUS_TABLE + 1] = newPID;
 
-alias state R8;
-state = [PROCESS_TABLE + newPID*16 + 4];
-if (state == CREATED) then
-	// BP = [[PROCESS_TABLE + newPID*16 + 11] * 512 - 1];
-        BP = [SP];
-	SP = [PROCESS_TABLE + newPID*16 + 13];
-	[PROCESS_TABLE + newPID*16 + 4] = RUNNING;
-	[PROCESS_TABLE + newPID*16 + 9] = 0;
+if ([newProcessTableEntry + 4] == CREATED) then
+    BP = [SP];
+	SP = [newProcessTableEntry + 13];
+	[newProcessTableEntry + 4] = RUNNING;
+	[newProcessTableEntry + 9] = 0;
 	ireturn;
 endif;
 
-[PROCESS_TABLE + (newPID * 16) + 4] = RUNNING;
-// could be POP BP; or something else (not sure)
+[newProcessTableEntry + 4] = RUNNING;
 multipop(BP);
 return;

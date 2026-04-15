@@ -1,0 +1,22 @@
+
+
+int main()
+{
+decl
+    int temp, perm;
+    string fileName, out;
+enddecl
+begin
+	temp = exposcall("Read", -1, fileName);	
+	temp = exposcall("Read", -1, perm);
+	temp = exposcall("Create", fileName, perm);
+	
+	if (temp == 0) then
+		out = "worked";
+		temp = exposcall("Write", -2, out);
+	endif;
+	return 0;
+end
+}
+
+
