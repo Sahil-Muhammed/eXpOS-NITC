@@ -1,0 +1,186 @@
+alias functionNum R1;
+alias currentPID R2;
+
+if (functionNum == ACQUIRE_DISK) then
+	while ([DISK_STATUS_TABLE] == 1) do
+		[PROCESS_TABLE + (currentPID * 16) + 4] = WAIT_DISK;
+		multipush(R1, R2);
+		call SCHEDULER;
+		multipop(R1, R2);
+	endwhile;
+	
+	[DISK_STATUS_TABLE + 0] = 1;
+	[DISK_STATUS_TABLE + 4] = currentPID;
+	return;
+endif;
+
+if (functionNum == ACQUIRE_TERMINAL) then
+	while ([TERMINAL_STATUS_TABLE] == 1) do
+		[PROCESS_TABLE + currentPID*16 + 4] = WAIT_TERMINAL;
+		multipush(R1, R2);
+		call SCHEDULER;
+		multipop(R1, R2);
+	endwhile;
+	[TERMINAL_STATUS_TABLE] = 1;
+	[TERMINAL_STATUS_TABLE + 1] = currentPID;
+	return;
+endif;
+
+if (functionNum == RELEASE_TERMINAL) then
+	if (currentPID != [TERMINAL_STATUS_TABLE + 1]) then
+		R0 = -1;
+		return;	
+	endif;
+	[TERMINAL_STATUS_TABLE] = 0;
+	
+	alias i R3;
+	i = 0;	
+	while (i < MAX_PROC_NUM) do
+		if ([PROCESS_TABLE + i*16 + 4] == WAIT_TERMINAL) then
+			[PROCESS_TABLE + i*16 + 4] = READY;
+		endif;
+		i = i + 1;
+	endwhile;
+	
+	// indicate success
+	R0 = 0;
+	return;
+endif;
+
+if (functionNum == ACQUIRE_SEMAPHORE) then
+	alias i R3;
+	i = 0;
+	while (i < MAX_SEM_COUNT) do
+		if ([SEMAPHORE_TABLE + (i * 4) + 1] == 0) then
+			[SEMAPHORE_TABLE + (i * 4) + 1] = 1;
+			[SEMAPHORE_TABLE + (i * 4)] = -1;
+			break;
+		endif;
+		i = i + 1;
+	endwhile;
+
+	if (i == MAX_SEM_COUNT) then
+		R0 = -1;
+		return;
+	endif;
+
+	R0 = i;
+	return;
+endif;
+
+if (functionNum == RELEASE_SEMAPHORE) then
+	alias semTableIndex R3;
+	// R3 stores the semTableIndex
+	if ([SEMAPHORE_TABLE + (semTableIndex * 4)] == currentPID) then
+		[SEMAPHORE_TABLE + (semTableIndex * 4)] = -1;
+		
+		alias i R4;
+	        i = 0;
+        	while (i < MAX_PROC_NUM) do
+                	if ([PROCESS_TABLE + i*16 + 4] == WAIT_SEMAPHORE && [PROCESS_TABLE + i*16 + 5] == semTableIndex) then
+                        	[PROCESS_TABLE + i*16 + 4] = READY;
+	                endif;
+	                i = i + 1;
+        	endwhile;
+	endif;
+
+	// decrement count
+	[SEMAPHORE_TABLE + (semTableIndex * 4) + 1] = [SEMAPHORE_TABLE + (semTableIndex * 4) + 1] - 1;
+
+	R0 = 0;
+	return;
+endif;
+
+if (functionNum == ACQUIRE_INODE) then
+	alias inodeIndex R2;
+	alias currPID R3;
+
+	while ([FILE_STATUS_TABLE + (inodeIndex * 4)] != -1) do
+		[PROCESS_TABLE + (currPID * 16) + 4] = WAIT_FILE;
+		[PROCESS_TABLE + (currPID * 16) + 5] = inodeIndex;
+
+		multipush(R1, R2, R3);
+		call SCHEDULER;
+		multipop(R1, R2, R3);
+	endwhile; 
+
+	if ([INODE_TABLE + (inodeIndex * 16) + 1] == -1) then
+		R0 = -1;
+		return;
+	endif;
+
+	[FILE_STATUS_TABLE + (inodeIndex * 4)] = currPID;
+	R0 = 0;
+	return;
+endif;
+
+if (functionNum == RELEASE_INODE) then
+	alias inodeIndex R2;
+	alias currPID R3;
+
+	if (currPID != [FILE_STATUS_TABLE + (inodeIndex * 4)]) then
+		R0 = -1;
+		return;
+	endif;
+
+	[FILE_STATUS_TABLE + (inodeIndex * 4)] = -1;
+
+	alias i R4;
+	i = 0;
+	
+	while (i < MAX_PROC_NUM) do
+		if ([PROCESS_TABLE + (i * 16) + 4] == WAIT_FILE && [PROCESS_TABLE + (i * 16) + 5] == inodeIndex) then
+			[PROCESS_TABLE + (i * 16) + 4] = READY;
+		endif;
+		i = i + 1;
+	endwhile;
+
+	R0 = 0;
+	return;
+endif;
+
+if (functionNum == ACQUIRE_BUFFER) then
+	alias bufNum R2;
+	alias PID R3;
+	
+	while ([BUFFER_TABLE + (bufNum * 4)] != -1) do
+		[PROCESS_TABLE + (PID * 16) + 4] = WAIT_BUFFER;
+		[PROCESS_TABLE + (PID * 16) + 5] = bufNum;
+		
+		multipush(R1, R2, R3);
+		
+		call SCHEDULER;
+
+		multipop(R1, R2, R3);
+	endwhile;
+
+	[BUFFER_TABLE + (bufNum * 4)] = PID;
+	
+	return;
+endif;
+
+if (functionNum == RELEASE_BUFFER) then
+	alias bufNum R2;
+	alias PID R3;
+
+	if (PID != [BUFFER_TABLE + (bufNum * 4)]) then
+		R0 = -1;
+		return;
+	endif;
+
+	[BUFFER_TABLE + (bufNum * 4)] = -1;
+
+	alias i R4;
+	i = 0;
+	
+	while (i < MAX_PROC_NUM) do
+		if ([PROCESS_TABLE + (i * 16) + 4] == WAIT_BUFFER && [PROCESS_TABLE + (i * 16) + 5] == bufNum) then
+			[PROCESS_TABLE + (i * 16) + 4] = READY;
+			[PROCESS_TABLE + (i * 16) + 5] = -1;
+		endif;
+		i = i + 1;
+	endwhile;
+
+	R0 = 0;
+	return;
+endif;

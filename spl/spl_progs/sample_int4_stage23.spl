@@ -59,7 +59,6 @@ if (function == INT_CREATE) then
 	
 	[ROOT_FILE + (i * 8) + 3] = username;
 	[ROOT_FILE + (i * 8) + 4] = perm;
-	breakpoint;
 	[retAddr] = 0;	
 endif;
 
@@ -185,7 +184,6 @@ if (function == INT_DELETE) then
 
 	SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
 	[retAddr] = 0;
-	breakpoint;
 endif;
 
 // reset the mode flag
