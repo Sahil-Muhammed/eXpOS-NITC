@@ -66,17 +66,16 @@ if (functionNum == INT_OPEN) then
 	[resTable + (2 * i)] = FILE;
 	[resTable + (2 * i) + 1] = R10;
 	[retAddr] = i;
-	breakpoint;
 endif;
 
 if (functionNum == INT_CLOSE) then
 	[procTable + 9] = INT_CLOSE;
 
+alias fileDesc R2;
+	fileDesc = [[PTBR + 2 * (SP - 4) / 512] * 512 + ((SP - 4) % 512)];
+
         [procTable + 13] = SP;
         SP = [procTable + 11] * 512 - 1;
-
-	alias fileDesc R2;
-	fileDesc = [[PTBR + 2 * (SP - 4) / 512] * 512 + ((SP - 4) % 512)];
 	
 	if (fileDesc < 0 || fileDesc > 7) then
 		[retAddr] = -1;
@@ -117,7 +116,6 @@ if (functionNum == INT_CLOSE) then
 
 	// reset mode flag
 	[retAddr] = 0;
-	breakpoint;
 endif;
 
 // reset mode flag

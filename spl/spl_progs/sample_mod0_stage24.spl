@@ -143,7 +143,7 @@ if (functionNum == ACQUIRE_BUFFER) then
 	alias bufNum R2;
 	alias PID R3;
 	
-	while ([BUFFER_TABLE + (bufNum * 4)] != -1) do
+	while ([BUFFER_TABLE + (bufNum * 4) + 2] != -1) do
 		[PROCESS_TABLE + (PID * 16) + 4] = WAIT_BUFFER;
 		[PROCESS_TABLE + (PID * 16) + 5] = bufNum;
 		
@@ -154,7 +154,7 @@ if (functionNum == ACQUIRE_BUFFER) then
 		multipop(R1, R2, R3);
 	endwhile;
 
-	[BUFFER_TABLE + (bufNum * 4)] = PID;
+	[BUFFER_TABLE + (bufNum * 4) + 2] = PID;
 	
 	return;
 endif;
@@ -163,12 +163,12 @@ if (functionNum == RELEASE_BUFFER) then
 	alias bufNum R2;
 	alias PID R3;
 
-	if (PID != [BUFFER_TABLE + (bufNum * 4)]) then
+	if (PID != [BUFFER_TABLE + (bufNum * 4) + 2]) then
 		R0 = -1;
 		return;
 	endif;
 
-	[BUFFER_TABLE + (bufNum * 4)] = -1;
+	[BUFFER_TABLE + (bufNum * 4) + 2] = -1;
 
 	alias i R4;
 	i = 0;

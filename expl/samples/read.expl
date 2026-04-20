@@ -11,7 +11,7 @@ begin
 	fd = exposcall("Open", fileName);
 	
 	if (fd >= 0) then
-		temp = exposcall("Read", temp, out);
+		temp = exposcall("Read", fd, out);
 
 		if (temp == 0) then	
 			temp = exposcall("Write", -2, out);
