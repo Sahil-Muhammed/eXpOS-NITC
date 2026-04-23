@@ -1,0 +1,17 @@
+int main()
+{
+    decl
+        int temp;
+        string fileName;
+    enddecl
+    begin
+        temp = exposcall("Read", -1, fileName);
+
+        temp = exposcall("Delete", fileName);
+        if(temp < 0) then
+            write("Error deleting file");
+        endif;
+
+        return 0;
+    end
+}

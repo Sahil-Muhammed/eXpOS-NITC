@@ -76,6 +76,7 @@ if (functionNum == DISK_STORE) then
 	[DISK_STATUS_TABLE + 3] = blockNum;
 	[DISK_STATUS_TABLE + 4] = currentPID;
 
+	print blockNum;
 	store(pageNum, blockNum);
 
 	[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 4] = WAIT_DISK;

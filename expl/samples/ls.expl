@@ -1,0 +1,40 @@
+int main()
+{
+    decl
+        int fd, temp, seek;
+        string word;
+    enddecl
+    begin
+        fd = exposcall("Open", "root");
+
+        if(fd < 0) then
+            write("Error opening root directory");
+        else
+            seek = 0;
+            while(1 == 1) do
+                temp = exposcall("Seek", fd, 0);
+                temp = exposcall("Seek", fd, seek);
+
+                if(temp < 0) then
+                    write("Seek error");
+                    break;
+                endif;
+
+                temp = exposcall("Read", fd, word);
+                if(temp < 0) then
+                    break;
+                endif;
+
+                if(word != "-1") then
+                    write(word);
+                endif;
+
+                seek = seek + 8;
+            endwhile;
+
+            temp = exposcall("Close", fd);
+        endif;
+
+        return 0;
+    end
+}

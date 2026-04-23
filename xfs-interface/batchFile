@@ -1,4 +1,4 @@
-load --int=7 $HOME/myexpos/spl/spl_progs/sample_int7_stage15.xsm
+load --int=7 $HOME/myexpos/spl/spl_progs/sample_int7_stage25.xsm
 load --os $HOME/myexpos/spl/spl_progs/os_startup_stage13.xsm
 load --init $HOME/myexpos/expl/samples/shell.xsm
 load --library $HOME/myexpos/expl/library.lib
@@ -7,23 +7,27 @@ load --int=timer $HOME/myexpos/spl/spl_progs/sample_timer_stage14.xsm
 load --module 7 $HOME/myexpos/spl/spl_progs/sample_mod7_stage24.xsm
 load --module 5 $HOME/myexpos/spl/spl_progs/sample_mod5_stage20.xsm
 load --int=4 $HOME/myexpos/spl/spl_progs/sample_int4_stage23.xsm
-load --int=5 $HOME/myexpos/spl/spl_progs/sample_int5_stage24.xsm
+load --int=5 $HOME/myexpos/spl/spl_progs/sample_int5_stage25.xsm
 load --int=6 $HOME/myexpos/spl/spl_progs/sample_int6_stage24.xsm
 load --int=10 $HOME/myexpos/spl/spl_progs/sample_int10_stage14.xsm
 load --int=11 $HOME/myexpos/spl/spl_progs/sample_int11_stage21.xsm
 load --int=13 $HOME/myexpos/spl/spl_progs/sample_int13_stage22.xsm
 load --int=14 $HOME/myexpos/spl/spl_progs/sample_int14_stage22.xsm
-load --int=15 $HOME/myexpos/spl/spl_progs/sample_int15_stage23.xsm
+load --int=15 $HOME/myexpos/spl/spl_progs/sample_int15_stage25.xsm
 load --int=console $HOME/myexpos/spl/spl_progs/sample_console_stage16.xsm
 load --int=9 $HOME/myexpos/spl/spl_progs/sample_int9_stage19.xsm
 load --int=8 $HOME/myexpos/spl/spl_progs/sample_int8_stage24.xsm
 load --module 4 $HOME/myexpos/spl/spl_progs/sample_mod4_stage23.xsm
 load --module 0 $HOME/myexpos/spl/spl_progs/sample_mod0_stage24.xsm
-load --module 1 $HOME/myexpos/spl/spl_progs/sample_mod1_stage24.xsm
-load --module 2 $HOME/myexpos/spl/spl_progs/sample_mod2_stage19.xsm
-load --module 3 $HOME/myexpos/spl/spl_progs/sample_mod3_stage24.xsm
+load --module 1 $HOME/myexpos/spl/spl_progs/sample_mod1_stage25.xsm
+load --module 2 $HOME/myexpos/spl/spl_progs/sample_mod2_stage25.xsm
+load --module 3 $HOME/myexpos/spl/spl_progs/sample_mod3_stage25.xsm
 load --int=disk $HOME/myexpos/spl/spl_progs/disk_interrupt_handler_stage18.xsm
-load --exec $HOME/myexpos/expl/samples/read2.xsm
+load --exec $HOME/myexpos/expl/samples/write1.xsm
 load --data $HOME/myexpos/sample.dat
+load --exec $HOME/myexpos/expl/samples/ls.xsm
+load --exec $HOME/myexpos/expl/samples/cat.xsm
+load --exec $HOME/myexpos/expl/samples/rm.xsm
+load --exec $HOME/myexpos/expl/samples/cp.xsm
 load --exhandler $HOME/myexpos/spl/spl_progs/exception_handler_stage19.xsm
 exit

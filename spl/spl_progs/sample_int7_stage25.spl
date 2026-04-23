@@ -1,0 +1,175 @@
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16 + 9] = 5;
+
+alias fileDescPhysicalAddr R0;
+fileDescPhysicalAddr = ([PTBR + 2 * ((SP - 4)/ 512)] * 512) + ((SP - 4) % 512);
+alias fileDescriptor R1;
+fileDescriptor=[fileDescPhysicalAddr];
+
+alias retAddr R2;
+retAddr = ([PTBR + 2 * ((SP - 1) / 512)] * 512) + ((SP - 1) % 512);
+
+alias word R3;
+word = [[PTBR + 2 * ((SP - 3) / 512)] * 512 + ((SP - 3) % 512)];
+
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+SP = ([PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512) - 1;
+
+alias procTable R4;
+procTable = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1] * 16;
+if (fileDescriptor != -2) then
+
+	//code when argument 1 is not valid
+	if (fileDescriptor < 0 || fileDescriptor > 7) then
+		[retAddr] = -1;
+		[procTable + 9] = 0;
+		ireturn;
+	endif;
+
+	alias PID R5;
+	PID = [SYSTEM_STATUS_TABLE + 1];
+	
+	alias UAreaPage R6;
+	UAreaPage = [PROCESS_TABLE + (PID * 16) + 11];
+
+	alias resTable R7;
+	resTable = UAreaPage * 512 + RESOURCE_TABLE_OFFSET;
+
+	if ([resTable + (fileDescriptor * 2)] != FILE) then
+		[retAddr] = -1;
+		[procTable + 9] = 0;
+		ireturn;
+	endif;	
+
+	alias OFTindex R8;
+	OFTindex = [resTable + (fileDescriptor * 2) + 1];
+
+	alias inodeIndex R9;
+	inodeIndex = [OPEN_FILE_TABLE + (OFTindex * 4)];
+
+	if ([procTable + 3] != ROOT && [INODE_TABLE + (inodeIndex * 16) + 3] != [procTable + 3] && [INODE_TABLE + (inodeIndex * 16) + 4] == EXCLUSIVE) then
+		[retAddr] = -3;
+		[procTable + 9] = 0;
+		ireturn;
+	endif;
+
+	multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9);
+
+	R1 = ACQUIRE_INODE;
+	R2 = inodeIndex;
+	R3 = PID;
+
+	call FILE_MANAGER;
+
+	if (R0 == -1) then
+		[retAddr] = -1;
+		[procTable + 9] = 0;
+		ireturn;
+	endif;
+
+	multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9);
+
+	// get LSEEK position
+
+	alias lseek R10;
+	lseek = [OPEN_FILE_TABLE + (OFTindex * 4) + 2];
+
+	// check if max file size reached (return -2)
+
+	if (lseek == MAX_FILE_SIZE) then
+		multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);	
+		R1 = RELEASE_INODE;
+		R2 = inodeIndex;
+		R3 = PID;
+		
+		call FILE_MANAGER;
+
+		multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+
+		[retAddr] = -2;
+		[procTable + 9] = 0;
+		ireturn;
+	endif;
+
+	// check if new block needed
+
+	if ((lseek % 512) == 0 && lseek == [INODE_TABLE + (inodeIndex * 16) + 2]) then
+		multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+	
+		R1 = GET_FREE_BLOCK;
+		
+		call MEMORY_MANAGER;	
+
+		// store free block num in temp register R13
+		R13 = R0;
+		multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+	
+		if (R13 == -1) then
+			multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+
+			R1 = RELEASE_INODE;
+			R2 = inodeIndex;
+			R3 = PID;
+
+			call FILE_MANAGER;
+
+			multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
+			
+			[retAddr] = -2;
+			[procTable + 9] = 0;
+			ireturn;
+		endif;
+	
+		// store free block number in inode table
+
+		[INODE_TABLE + (inodeIndex * 16) + 8 + (lseek / 512)] = R13;
+	endif;
+
+	alias blockNum R11;
+	blockNum = [INODE_TABLE + (inodeIndex * 16) + 8 + (lseek / 512)];
+
+	alias offset R12;
+	offset = lseek % 512;
+
+	multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+
+	R1 = BUFFERED_WRITE;
+	R2 = blockNum;
+	R4 = word;
+	R3 = offset;
+
+	call FILE_MANAGER; 
+
+	multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+
+	if (lseek == [INODE_TABLE + (inodeIndex * 16) + 2]) then
+		[INODE_TABLE + (inodeIndex * 16) + 2] = [INODE_TABLE + (inodeIndex * 16) + 2] + 1;
+		[ROOT_FILE + (inodeIndex * 8) + 1] = [ROOT_FILE + (inodeIndex * 8) + 1];
+	endif;
+
+	[OPEN_FILE_TABLE + (OFTindex * 4) + 2] = [OPEN_FILE_TABLE + (OFTindex * 4) + 2] + 1;
+
+	multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+
+	R1 = RELEASE_BUFFER;
+	R2 = inodeIndex;
+	R3 = PID;
+	
+	call FILE_MANAGER;
+	
+	multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12);
+
+	[retAddr] = 0;
+else
+	
+	multipush(R0, R1, R2, R3, R4);
+	R1 = TERMINAL_WRITE;
+	R2 = [SYSTEM_STATUS_TABLE + 1];
+	R3 = word;
+	call MOD_4;
+	multipop(R0, R1, R2, R3, R4);
+
+	[retAddr] = 0;
+endif;
+SP = [procTable + 13];
+[procTable + 9] = 0;
+ireturn;

@@ -1,0 +1,227 @@
+alias procTable R0;
+procTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
+
+alias retAddr R1;
+retAddr = [PTBR + 2 * (SP - 1) / 512] * 512 + ((SP - 1) % 512);
+
+alias functionNum R15;
+functionNum = [[PTBR + 2 * (SP - 5) / 512] * 512 + ((SP - 5) % 512)];
+
+alias PID R3;
+PID = [SYSTEM_STATUS_TABLE + 1];
+
+if (functionNum == INT_OPEN) then
+	[procTable + 9] = INT_OPEN;
+
+	alias fileName R2;
+	fileName = [[PTBR + 2 * (SP - 4) / 512] * 512 + ((SP - 4) % 512)];
+
+	[procTable + 13] = SP;
+	SP = [procTable + 11] * 512 - 1;
+
+	alias UAreaPage R4;
+	UAreaPage = [procTable + 11];
+
+	alias i R5;
+	i = 0;
+
+	alias resTable R6;
+	resTable = (UAreaPage * 512) + RESOURCE_TABLE_OFFSET;
+
+	while (i < 8) do
+		if ([resTable + (2 * i)] == -1) then
+			break;
+		endif;
+		i = i + 1;
+	endwhile;
+
+	if (i == 8) then
+		[retAddr] = -3;
+		[procTable + 9] = 0;
+		SP = [procTable + 13];
+		ireturn;
+	endif;
+
+	multipush(R0, R1, R5, R6);
+
+	R1 = OPEN;
+	R2 = fileName;
+
+	call FILE_MANAGER;
+
+	R10 = R0;
+
+	// store error code in temp register and then multipop to restore previous context
+	multipop(R0, R1, R5, R6);
+
+	if (R10 == -1 || R10 == -2) then
+		[retAddr] = R10;
+		[procTable + 9] = 0;
+		SP = [procTable + 13];
+		ireturn;
+	endif;
+
+	// reach here means file open success
+
+	[resTable + (2 * i)] = FILE;
+	[resTable + (2 * i) + 1] = R10;
+	[retAddr] = i;
+endif;
+
+if (functionNum == INT_CLOSE) then
+	[procTable + 9] = INT_CLOSE;
+
+	alias fileDesc R2;
+	fileDesc = [[PTBR + 2 * (SP - 4) / 512] * 512 + ((SP - 4) % 512)];
+
+        [procTable + 13] = SP;
+        SP = [procTable + 11] * 512 - 1;
+	
+	if (fileDesc < 0 || fileDesc > 7) then
+		[retAddr] = -1;
+		[procTable + 9] = 0;
+		SP = [procTable + 13];
+		ireturn;
+	endif;
+
+	// PID in R3
+	alias UAreaPage R4;
+	UAreaPage = [procTable + 11];
+	
+	alias resTable R5;
+	resTable = UAreaPage * 512 + RESOURCE_TABLE_OFFSET;
+	if ([resTable + (2 * fileDesc)] != FILE) then
+		[retAddr] = -1;
+		[procTable + 9] = 0;
+		SP = [procTable + 13];
+		ireturn;
+	endif;
+
+	alias OFTindex R6;
+	OFTindex = [resTable + (2 * fileDesc) + 1];
+
+	multipush(R0, R1, R2, R5);
+
+	R1 = CLOSE;
+	R2 = OFTindex;
+	
+	call FILE_MANAGER;
+	
+	multipop(R0, R1, R2, R5);
+
+	// invalidate resource table entry
+
+	[resTable + (2 * fileDesc)] = -1;
+	[resTable + (2 * fileDesc) + 1] = -1;
+
+	// reset mode flag
+	[retAddr] = 0;
+endif;
+
+if (functionNum == INT_SEEK) then 
+
+	[procTable + 9] = INT_SEEK;
+	
+	// R3 stores the PID
+	alias fileDesc R2;
+	fileDesc = [[PTBR + 2 * (SP - 4) / 512] * 512 + ((SP - 4) % 512)];
+
+	alias offset R4;
+	offset = [[PTBR + 2 * (SP - 3) / 512] * 512 + ((SP - 3) % 512)];
+
+	[procTable + 13] = SP;
+	SP = [procTable + 11] * 512 - 1;
+
+	if (fileDesc < 0 || fileDesc > 7) then
+		[retAddr] = -1;
+		SP = [procTable + 13];
+		[procTable + 9] = 0;
+		ireturn;		
+	endif;
+
+	alias UAreaPage R5;
+	UAreaPage = [procTable + 11];
+
+	alias resTable R6;
+	resTable = UAreaPage * 512 + RESOURCE_TABLE_OFFSET;
+
+	if ([resTable + (fileDesc * 2)] == -1) then
+		[retAddr] = -1;
+		SP = [procTable + 13];
+		[procTable + 9] = 0;
+		ireturn;
+	endif;
+
+	alias OFTindex R7;
+	OFTindex = [resTable + (fileDesc * 2) + 1];
+
+	alias inodeIndex R8;
+	inodeIndex = [OPEN_FILE_TABLE + (OFTindex * 4)];
+
+	multipush(R0, R1, R3, R4, R7, R8);
+
+	R1 = ACQUIRE_INODE;
+	R2 = inodeIndex;
+	R3 = PID;
+
+	call RESOURCE_MANAGER;
+
+	if (R0 == -1) then
+		multipop(R0, R1, R3, R4, R7, R8);
+		[retAddr] = -1;
+		SP = [procTable + 13];
+		[procTable + 9] = 0;
+		ireturn;
+	endif;
+
+	multipop(R0, R1, R3, R4, R7, R8);
+
+	alias lseek R9;
+	lseek = [OPEN_FILE_TABLE + (OFTindex * 4) + 2];
+
+	alias fileSize R10;
+	fileSize = [INODE_TABLE + (inodeIndex * 16) + 2];
+
+	if (lseek + offset < 0) then
+		multipush(R0, R1);
+
+		R1 = RELEASE_INODE;
+		R2 = inodeIndex;
+		R3 = PID;
+
+		call RESOURCE_MANAGER;
+
+		multipop(R0, R1);
+
+		[retAddr] = -2;
+		SP = [procTable + 13];
+		[procTable + 9] = 0;
+		ireturn;
+	endif;
+
+	if (offset == 0) then
+		[OPEN_FILE_TABLE + (OFTindex * 4) + 2] = 0;
+	endif;
+	if ((lseek + offset) > fileSize) then
+		[OPEN_FILE_TABLE + (OFTindex * 4) + 2] = fileSize;	
+	else
+		[OPEN_FILE_TABLE + (OFTindex * 4) + 2] = lseek + offset;
+	endif;
+
+	multipush(R0, R1);
+	
+	R1 = RELEASE_INODE;
+        R2 = inodeIndex;
+        R3 = PID;
+
+        call RESOURCE_MANAGER;
+
+	multipop(R0, R1);
+
+	[retAddr] = 0;
+endif;
+// reset mode flag
+
+[procTable + 9] = 0;
+SP = [procTable + 13];
+ireturn;
