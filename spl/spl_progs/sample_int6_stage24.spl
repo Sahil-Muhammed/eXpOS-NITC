@@ -113,6 +113,7 @@ if (fileDesc != -1) then
 
                         [physicalRetAddr] = -2;
                         [PROCESS_TABLE + (PID * 16) + 9] = 0;
+                        SP = userSP;
                         ireturn;
 		endif;
 
