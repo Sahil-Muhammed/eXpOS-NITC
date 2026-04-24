@@ -23,7 +23,7 @@ load --module 1 $HOME/myexpos/spl/spl_progs/sample_mod1_stage25.xsm
 load --module 2 $HOME/myexpos/spl/spl_progs/sample_mod2_stage25.xsm
 load --module 3 $HOME/myexpos/spl/spl_progs/sample_mod3_stage25.xsm
 load --int=disk $HOME/myexpos/spl/spl_progs/disk_interrupt_handler_stage18.xsm
-load --exec $HOME/myexpos/expl/samples/25_1.xsm
+load --exec $HOME/myexpos/expl/samples/25_2.xsm
 load --data $HOME/myexpos/sample.dat
 load --exec $HOME/myexpos/expl/samples/ls.xsm
 load --exec $HOME/myexpos/expl/samples/cat.xsm
@@ -31,4 +31,3 @@ load --exec $HOME/myexpos/expl/samples/rm.xsm
 load --exec $HOME/myexpos/expl/samples/cp.xsm
 load --exhandler $HOME/myexpos/spl/spl_progs/exception_handler_stage19.xsm
 exit
-load --exec $HOME/myexpos/expl/samples/25_1.xsm

@@ -128,6 +128,7 @@ if (function == INT_DELETE) then
 
 		[retAddr] = -2;
 		[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+		SP = [procTable + 13];
 		ireturn;
 	endif;
 

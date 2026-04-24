@@ -1,0 +1,88 @@
+decl
+    int store(str file, int start);
+    int merge(str out, str in1, str in2);
+enddecl
+
+int store(str file, int start) {
+  decl int x, fp, counter, val; enddecl
+  begin
+    x=exposcall("Create", file, 1);
+    fp=exposcall("Open", file);
+    counter=0;
+    val = start;
+    while(counter<512) do
+      x=exposcall("Write", fp, val);
+      counter=counter+1;
+      val = val + 4;
+    endwhile;
+    x=exposcall("Close", fp);
+    return 0;
+  end
+}
+
+int merge(str out, str in1, str in2) {
+  decl int fp, fp1, fp2, x, a, b, w1, w2; enddecl
+  begin
+    x=exposcall("Create", out, 1);
+    fp=exposcall("Open", out);
+    fp1=exposcall("Open", in1);
+    fp2=exposcall("Open", in2);
+    a=exposcall("Read", fp1, w1);
+    b=exposcall("Read", fp2, w2);
+    while(a!=-2 AND b!=-2) do
+      if(w1<=w2) then
+        x=exposcall("Write", fp, w1);
+        a=exposcall("Read", fp1, w1);
+      else
+        x=exposcall("Write", fp, w2);
+        b=exposcall("Read", fp2, w2);
+      endif;
+    endwhile;
+    while(a!=-2) do
+      x=exposcall("Write", fp, w1);
+      a=exposcall("Read", fp1, w1);
+    endwhile;
+    while(b!=-2) do
+      x=exposcall("Write", fp, w2);
+      b=exposcall("Read", fp2, w2);
+    endwhile;
+    x=exposcall("Close", fp);
+    x=exposcall("Close", fp1);
+    x=exposcall("Close", fp2);
+    x=exposcall("Delete", in1);
+    x=exposcall("Delete", in2);
+    return 0;
+  end
+}
+
+int main() {
+  decl int x, pid1, pid2, id; str file; enddecl
+  begin
+    pid1=exposcall("Fork");
+    pid2=exposcall("Fork");
+    id = 1;
+    if (pid1 == 0) then id = id + 2; endif;
+    if (pid2 == 0) then id = id + 1; endif;
+    
+    if (id == 1) then file = "temp1.dat"; endif;
+    if (id == 2) then file = "temp2.dat"; endif;
+    if (id == 3) then file = "temp3.dat"; endif;
+    if (id == 4) then file = "temp4.dat"; endif;
+    
+    x = store(file, id);
+    if (pid2 != 0) then
+        x = exposcall("Wait", pid2);
+        if (id == 1) then
+            x = merge("tempa.dat", "temp1.dat", "temp2.dat");
+            x = exposcall("Wait", pid1);
+            x = merge("merge.dat", "tempa.dat", "tempb.dat");
+        else
+            x = merge("tempb.dat", "temp3.dat", "temp4.dat");
+            x=exposcall("Exit");
+        endif;
+    else
+        x=exposcall("Exit");
+    endif;
+    return 1;
+  end
+}

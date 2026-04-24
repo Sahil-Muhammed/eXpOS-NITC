@@ -22,6 +22,7 @@ if (fileDescriptor != -2) then
 	if (fileDescriptor < 0 || fileDescriptor > 7) then
 		[retAddr] = -1;
 		[procTable + 9] = 0;
+		SP = [procTable + 13];
 		ireturn;
 	endif;
 
@@ -37,6 +38,7 @@ if (fileDescriptor != -2) then
 	if ([resTable + (fileDescriptor * 2)] != FILE) then
 		[retAddr] = -1;
 		[procTable + 9] = 0;
+		SP = [procTable + 13];
 		ireturn;
 	endif;	
 
@@ -49,6 +51,7 @@ if (fileDescriptor != -2) then
 	if ([procTable + 3] != ROOT && [INODE_TABLE + (inodeIndex * 16) + 3] != [procTable + 3] && [INODE_TABLE + (inodeIndex * 16) + 4] == EXCLUSIVE) then
 		[retAddr] = -3;
 		[procTable + 9] = 0;
+		SP = [procTable + 13];
 		ireturn;
 	endif;
 
@@ -58,11 +61,12 @@ if (fileDescriptor != -2) then
 	R2 = inodeIndex;
 	R3 = PID;
 
-	call FILE_MANAGER;
+	call RESOURCE_MANAGER;
 
 	if (R0 == -1) then
 		[retAddr] = -1;
 		[procTable + 9] = 0;
+		SP = [procTable + 13];
 		ireturn;
 	endif;
 
@@ -81,12 +85,13 @@ if (fileDescriptor != -2) then
 		R2 = inodeIndex;
 		R3 = PID;
 		
-		call FILE_MANAGER;
+		call RESOURCE_MANAGER;
 
 		multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
 
 		[retAddr] = -2;
 		[procTable + 9] = 0;
+		SP = [procTable + 13];
 		ireturn;
 	endif;
 
@@ -107,15 +112,17 @@ if (fileDescriptor != -2) then
 			multipush(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
 
 			R1 = RELEASE_INODE;
+			// ...
 			R2 = inodeIndex;
 			R3 = PID;
 
-			call FILE_MANAGER;
+			call RESOURCE_MANAGER;
 
 			multipop(R0, R1, R2, R3, R4, R5, R6, R7, R8, R9, R10);
 			
 			[retAddr] = -2;
 			[procTable + 9] = 0;
+			SP = [procTable + 13];
 			ireturn;
 		endif;
 	

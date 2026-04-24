@@ -27,6 +27,7 @@ if (sysCall == INT_WAIT) then
 	if (tarPID < 0 || tarPID >= MAX_PROC_NUM || tarPID == [SYSTEM_STATUS_TABLE + 1] || [PROCESS_TABLE + (tarPID * 16) + 4] == TERMINATED) then
 		[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
 		[retValAddr] = -1;
+		SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
 		ireturn;
 	endif;
 
