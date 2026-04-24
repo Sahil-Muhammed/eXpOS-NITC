@@ -201,11 +201,12 @@ if (functionNum == INT_SEEK) then
 
 	if (offset == 0) then
 		[OPEN_FILE_TABLE + (OFTindex * 4) + 2] = 0;
-	endif;
-	if ((lseek + offset) > fileSize) then
-		[OPEN_FILE_TABLE + (OFTindex * 4) + 2] = fileSize;	
 	else
-		[OPEN_FILE_TABLE + (OFTindex * 4) + 2] = lseek + offset;
+		if ((lseek + offset) > fileSize) then
+			[OPEN_FILE_TABLE + (OFTindex * 4) + 2] = fileSize;	
+		else
+			[OPEN_FILE_TABLE + (OFTindex * 4) + 2] = lseek + offset;
+		endif;
 	endif;
 
 	multipush(R0, R1);

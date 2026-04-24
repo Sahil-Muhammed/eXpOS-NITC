@@ -168,7 +168,7 @@ if (function == INT_DELETE) then
 	alias rootFile R6;
 	rootFile = ROOT_FILE + (i * 8);
 
-	while (j < 5) do
+	while (j < 8) do
 		[rootFile + j] = -1;
 		j = j + 1;
 	endwhile;
