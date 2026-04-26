@@ -1,0 +1,73 @@
+alias procTable R0;
+alias PID R1;
+alias retVal R2;
+alias username R3;
+alias password R4;
+procTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
+PID = [SYSTEM_STATUS_TABLE + 1];
+retVal = [PTBR + 2 * (SP - 1) / 512] * 512 + ((SP - 1) % 512);
+username = [[PTBR + 2 * (SP - 4) / 512] * 512 + ((SP - 4) % 512)];
+password = [[PTBR + 2 * (SP - 3) / 512] * 512 + ((SP - 3) % 512)];
+
+[procTable + 9] = 27;
+
+[procTable + 13] = SP;
+SP = [procTable + 11] * 512 - 1;
+
+if (PID != 1) then
+	[retVal] = -2;
+	SP = [procTable + 13];
+	[procTable + 9] = 0;
+	ireturn;
+endif;
+
+alias userTableEntry R5;
+alias i R6;
+
+i = 0;
+while (i < MAX_USER_NUM) do
+	if ([USER_TABLE + (i * 2)] == username) then
+		userTableEntry = i;
+		break;
+	endif;
+	i = i + 1;
+endwhile;
+
+if (userTableEntry == MAX_USER_NUM) then
+	[retVal] = -1;
+	SP = [procTable + 13];
+	[procTable + 9] = 0;
+	ireturn;
+endif;
+
+encrypt password;
+
+if ([USER_TABLE + (userTableEntry * 2) + 1] != password) then
+	[retVal] = -1;
+	SP = [procTable + 13];
+	[procTable + 9] = 0;
+	ireturn;
+endif;
+
+// set state of shell in its process table as created
+// and userid as that of the user who's logging in
+
+[PROCESS_TABLE + (2 * 16) + 4] = CREATED;
+[PROCESS_TABLE + (2 * 16) + 3] = userTableEntry;
+
+// set state of current process to (WAIT_PROCESS, 2)
+
+[procTable + 4] = WAIT_PROCESS;
+[procTable + 5] = 2;
+
+[SYSTEM_STATUS_TABLE] = userTableEntry;
+
+multipush(R0, R1, R2, R3, R4, R5, R6);
+
+call SCHEDULER;
+
+multipop(R0, R1, R2, R3, R4, R5, R6);
+
+[procTable + 9] = 0;
+SP = [procTable + 13];
+ireturn;

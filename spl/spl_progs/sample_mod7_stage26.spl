@@ -40,45 +40,6 @@ loadi(6, 19);
 loadi(7, 20);
 // load disk free list
 loadi(61, 2);
-// load root file
-loadi(62, 5);
-// load fork (INT 8)
-loadi(18, 31);
-loadi(19, 32);
-// load Process Sync (INT 11)
-loadi(24, 37);
-loadi(25, 38);
-// load shutdown interrupt (INT 15)
-loadi(32, 45);
-loadi(33, 46);
-// load semget, semrelease (INT 13)
-loadi(28, 41);
-loadi(29, 42);
-// load semlock, semunlock (INT 14)
-loadi(30, 43);
-loadi(31, 44);
-// load create, write file (INT 4)
-loadi(10, 23);
-loadi(11, 24);
-// load seek, open, close (INT 5)
-loadi(12, 25);
-loadi(13, 26);
-// load file manager (MOD 3)
-loadi(46, 59);
-loadi(47, 60);
-// load shell
-loadi(67, 9);
-loadi(68, 10); 
-// load newusr, remusr (INT 16)
-loadi(34, 47);
-loadi(35, 48);
-// load login (INT 17)
-loadi(36, 49);
-loadi(37, 50);
-// load logout (INT 12)
-loadi(26, 39);
-loadi(27, 40);
-
 
 [TERMINAL_STATUS_TABLE] = 0;
 [DISK_STATUS_TABLE] = 0;

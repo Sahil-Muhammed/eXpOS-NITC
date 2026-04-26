@@ -1,0 +1,53 @@
+alias procTable R0;
+alias PID R1;
+alias retVal R2;
+alias userSP R3;
+
+PID = [SYSTEM_STATUS_TABLE + 1];
+procTable = PROCESS_TABLE + (PID * 16);
+retVal = [PTBR + 2 * (SP - 1) / 512] * 512 + ((SP - 1) % 512);
+
+[procTable + 9] = INT_LOGOUT;
+
+[procTable + 13] = SP;
+SP = [procTable + 11] * 512 - 1;
+
+if (PID != 2) then
+	[retVal] = -1;
+	[procTable + 9] = 0;
+	SP = [procTable + 13];
+	ireturn;	
+endif;
+
+multipush(R0, R1, R2);
+
+R1 = KILL_ALL;
+R2 = PID;
+
+call PROCESS_MANAGER;
+
+multipop(R0, R1, R2);
+
+[procTable + 4] = TERMINATED;
+
+// set the entry point of shell program to the beginning of the shell
+
+[[PTBR + 2 * (4096) / 512] * 512 + ((4096) % 512)] = [67 * 512 + 1];
+
+// reset usersp field of shell to 4096
+
+[procTable + 13] = 4096;
+
+[PROCESS_TABLE + (1 * 16) + 4] = READY;
+
+// reset current user id to 0 (kernel)
+
+[SYSTEM_STATUS_TABLE] = 0;
+
+call SCHEDULER;
+
+[procTable + 9] = 0;
+SP = [procTable + 13];
+
+ireturn;
+

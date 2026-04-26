@@ -1,0 +1,194 @@
+alias function R0;
+function = [[PTBR + 2 * (SP - 5) / 512] * 512 + ((SP - 5) % 512)];
+
+alias retVal R1;
+retVal = [[PTBR + 2 * (SP - 1) / 512] * 512 + ((SP - 1) % 512)];
+
+alias procTable R2;
+procTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
+
+alias username R3;
+username = [[PTBR + 2 * (SP - 4) / 512] * 512 + ((SP - 4) % 512)];
+
+if (function == INT_NEWUSR) then
+	alias password R4;
+	password = [[PTBR + 2 * (SP - 3) / 512] * 512 + ((SP - 3) % 512)];
+
+	[procTable + 9] = INT_NEWUSR;
+
+	if ([procTable + 3] != 1 && [procTable + 3] != 2) then
+		[retVal] = -2;
+		[procTable + 9] = 0;
+		ireturn;
+	endif;
+
+	alias i R5;
+	i = 0;
+	while (i < MAX_USER_NUM) do
+		if ([USER_TABLE + (i * 2)] == username) then
+			[retVal] = -1;
+			[procTable + 9] = 0;
+			ireturn;
+		endif;
+		i = i + 1;
+	endwhile;
+
+	i = 3;
+	while (i < MAX_USER_NUM) do
+		if ([USER_TABLE + (i * 2)] == -1) then
+			break;	
+		endif;
+		i = i + 1;
+	endwhile;
+
+	if (i == MAX_USER_NUM) then
+		[retVal] = -3;
+		[procTable + 9] = 0;
+		ireturn;
+	endif;
+
+	encrypt password;
+
+	[USER_TABLE + (i * 2)] = username;
+	[USER_TABLE + (i * 2) + 1] = password;
+
+	[procTable + 9] = 0;
+
+	[retVal] = 0;
+endif;
+
+if (function == INT_REMUSR) then
+	[procTable + 9] = INT_REMUSR;
+
+	if ([procTable + 3] != 1 && [procTable + 3] != 2) then
+		[retVal] = -2;
+		[procTable + 9] = 0;
+		ireturn;
+	endif;	
+
+	if (username == "root" || username == "kernel") then
+		[retVal] = -2;
+		[procTable + 9] = 0;
+		ireturn;
+	endif;
+
+	alias i R4;
+	i = 2;
+	
+	while (i < MAX_USER_NUM) do
+		if ([USER_TABLE + (i * 2)] == username) then
+			break;
+		endif;
+		i = i + 1;
+	endwhile;
+
+	if (i == MAX_USER_NUM) then
+		[retVal] = -1;
+		[procTable + 9] = 0;
+		ireturn;
+	endif;
+
+	alias j R5;
+	j = 0;
+	while (j < MAX_FILE_NUM) do
+		if ([ROOT_FILE + (j * 8) + 3] == username) then
+			[retVal] = -3;
+			[procTable + 9] = 0;
+			ireturn;
+		endif;
+		j = j + 1;
+	endwhile;
+
+	[OPEN_FILE_TABLE + (i * 2)] = -1;
+	[OPEN_FILE_TABLE + (i * 2) + 1] = -1;
+
+	[procTable + 9] = 0;
+endif;
+
+if (function == INT_SETPWD) then
+	[procTable + 9] = INT_SETPWD;
+
+	alias password R4;
+	password = [[PTBR + 2 * (SP - 3) / 512] * 512 + ((SP - 3) % 512)];
+
+	if ([procTable + 3] != 2) then
+                [retVal] = -1;
+                [procTable + 9] = 0;
+                ireturn;
+        endif;	 
+
+	alias i R5;
+	i = 2;
+	
+	while (i < MAX_USER_NUM) do
+		if ([USER_TABLE + (i * 2)] == username) then
+			break;
+		endif;
+		i = i + 1;
+	endwhile;
+	
+	if (i == MAX_USER_NUM) then
+		[retVal] = -2;
+		[procTable + 9] = 0;
+		ireturn;
+	endif;
+
+	if ([procTable + 3] != i) then
+		if ([USER_TABLE + (i * 2)] != "root") then
+			[retVal] = -1;
+			[procTable + 9] = 0;
+			ireturn;
+		endif;
+	endif;
+
+	encrypt password;
+
+	[USER_TABLE + (i * 2) + 1] = password;
+
+	[procTable + 9] = 0;
+
+	[retVal] = 0;
+endif;
+
+if (function == INT_GETUID) then
+	[procTable + 9] = INT_GETUID;
+
+	alias i R4;
+	i = 0;
+	while (i < MAX_USER_NUM) do
+		if ([USER_TABLE + (i * 2)] == username) then
+			[retVal] = i;
+			[procTable + 9] = 0;
+			ireturn;
+		endif;
+		i = i + 1;
+	endwhile;
+	
+	[retVal] = -1;
+	[procTable + 9] = 0;
+endif;
+
+if (function == INT_GETUNAME) then
+	[procTable + 9] = INT_GETUNAME;
+	alias userID R3;
+	
+	if (userID < 0 || userID > 15) then
+		[retVal] = -1;
+		[procTable + 9] = 0;
+		ireturn;
+	endif;
+	
+	if ([USER_TABLE + (userID * 2)] == -1) then
+		[retVal] = -1;
+		[procTable + 9] = 0;
+		ireturn;
+	endif;
+
+	alias uname R4;
+	uname = [USER_TABLE + (userID * 2)];
+
+	[procTable + 9] = 0;
+	[retVal] = uname;
+endif;
+
+ireturn;
