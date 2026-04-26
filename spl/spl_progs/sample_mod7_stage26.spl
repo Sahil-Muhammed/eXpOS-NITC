@@ -162,8 +162,8 @@ while (i < 10) do
 	i = i + 1;
 endwhile;
 
-[DISK_MAP_TABLE + (2 * 10) + 4] = 67;
-[DISK_MAP_TABLE + (2 * 10) + 5] = 68; 
+[DISK_MAP_TABLE + (2 * 10) + 4] = 9;
+[DISK_MAP_TABLE + (2 * 10) + 5] = 10; 
 
 // initialize per-process resource table for init
 

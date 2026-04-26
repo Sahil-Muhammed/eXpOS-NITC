@@ -26,7 +26,7 @@ load --module 1 $HOME/myexpos/spl/spl_progs/sample_mod1_stage25.xsm
 load --module 2 $HOME/myexpos/spl/spl_progs/sample_mod2_stage25.xsm
 load --module 3 $HOME/myexpos/spl/spl_progs/sample_mod3_stage25.xsm
 load --int=disk $HOME/myexpos/spl/spl_progs/disk_interrupt_handler_stage18.xsm
-load --exec $HOME/myexpos/expl/samples/shell1.xsm
+load --shell $HOME/myexpos/expl/samples/shell1.xsm
 load --data $HOME/myexpos/sample.dat
 load --exec $HOME/myexpos/expl/samples/ls.xsm
 load --exec $HOME/myexpos/expl/samples/cat.xsm
