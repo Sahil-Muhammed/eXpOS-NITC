@@ -75,7 +75,7 @@ if (fileDesc != -1) then
 	MemBuffer = [PTBR + 2 * (MemBuffer / 512)] * 512 + (MemBuffer % 512);
 
 	if (inodeIndex == INODE_ROOT) then
-		if (lseek == 480) then
+		if (lseek >= 480) then
 			// if lseek value is size of root file, then release inode
 			// and return -2
 

@@ -2,7 +2,7 @@ alias function R0;
 function = [[PTBR + 2 * (SP - 5) / 512] * 512 + ((SP - 5) % 512)];
 
 alias retVal R1;
-retVal = [[PTBR + 2 * (SP - 1) / 512] * 512 + ((SP - 1) % 512)];
+retVal = [PTBR + 2 * (SP - 1) / 512] * 512 + ((SP - 1) % 512);
 
 alias procTable R2;
 procTable = PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16);
