@@ -111,14 +111,14 @@ if (function == INT_SETPWD) then
 	alias password R4;
 	password = [[PTBR + 2 * (SP - 3) / 512] * 512 + ((SP - 3) % 512)];
 
-	if ([procTable + 3] != 2) then
+	if ([procTable + 1] != 2) then
                 [retVal] = -1;
                 [procTable + 9] = 0;
                 ireturn;
         endif;	 
 
 	alias i R5;
-	i = 2;
+	i = 0;
 	
 	while (i < MAX_USER_NUM) do
 		if ([USER_TABLE + (i * 2)] == username) then
@@ -134,7 +134,7 @@ if (function == INT_SETPWD) then
 	endif;
 
 	if ([procTable + 3] != i) then
-		if ([USER_TABLE + (i * 2)] != "root") then
+		if ([procTable + 3] != 1) then
 			[retVal] = -1;
 			[procTable + 9] = 0;
 			ireturn;
