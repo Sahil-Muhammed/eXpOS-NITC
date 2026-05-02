@@ -1,0 +1,97 @@
+alias PID R0;
+PID = [SYSTEM_STATUS_TABLE + 1];
+
+alias pagingStatus R1;
+pagingStatus = [SYSTEM_STATUS_TABLE + 5];
+
+[PROCESS_TABLE + (PID * 16) + 13] = SP;
+// Setting SP to UArea Page number * 512 - 1
+SP = [PROCESS_TABLE + (PID * 16) + 11] * 512 - 1;
+backup;
+
+// swapper daemon check
+
+if (pagingStatus == 1 || pagingStatus == 0) then
+		
+	if (PID == 15 && pagingStatus == 0) then
+		// 0 <--> swap out
+		
+		multipush(R0, R1);
+
+		R1 = SWAP_OUT;
+		R2 = PID;
+
+		call PAGER_MODULE;
+	
+		multipop(R0, R1);
+	endif;
+
+	if (PID == 15 && pagingStatus == 1) then
+		// 1 <--> swap in
+
+		multipush(R0, R1);
+
+		R1 = SWAP_IN;
+		R2 = PID;
+
+		call PAGER_MODULE;
+
+		multipop(R0, R1);
+	endif;
+
+	// if (PID == 0) then
+	
+		// reaching here means swapping is ongoing, but
+		// swapper daemon is blocked because of disk operation
+		// so, idle is run now. skip to the scheduler part
+
+		
+	// endif;
+else
+
+	if ([SYSTEM_STATUS_TABLE + 2] < MEM_LOW) then
+		[SYSTEM_STATUS_TABLE + 5] = SWAP_OUT;
+	endif;
+
+	if ([SYSTEM_STATUS_TABLE + 4] > 0) then
+		alias i R2;
+		i = 0;
+	
+		while (i < MAX_PROC_NUM) do
+			if ([PROCESS_TABLE + (i * 16)] > MAX_TICK || [SYSTEM_STATUS_TABLE + 2] > MEM_HIGH) then
+				[SYSTEM_STATUS_TABLE + 5] = SWAP_IN;
+				break;
+			endif;
+			 i = i + 1;
+		endwhile;
+	endif;
+endif;
+
+
+alias currentPID R3;
+currentPID = [SYSTEM_STATUS_TABLE + 1];
+
+alias process_table_entry R4;
+process_table_entry = PROCESS_TABLE + currentPID * 16;
+
+[process_table_entry + 4] = READY;
+
+// increment TICK field in each process
+
+alias i R2;
+i = 0;
+while (i < 16) do
+	[PROCESS_TABLE + i*16] = [PROCESS_TABLE + i*16] + 1;
+	i = i + 1;
+endwhile;
+
+// invoke context switch module
+call MOD_5;
+
+restore;
+
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
+
+ireturn;
+

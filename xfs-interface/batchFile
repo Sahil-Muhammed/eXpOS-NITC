@@ -1,11 +1,12 @@
 load --int=7 $HOME/myexpos/spl/spl_progs/sample_int7_stage25.xsm
-load --os $HOME/myexpos/spl/spl_progs/os_startup_stage26.xsm
+load --os $HOME/myexpos/spl/spl_progs/os_startup_stage27.xsm
 load --init $HOME/myexpos/expl/samples/login.xsm
 load --library $HOME/myexpos/expl/library.lib
 load --idle $HOME/myexpos/expl/samples/idle_process.xsm
-load --int=timer $HOME/myexpos/spl/spl_progs/sample_timer_stage14.xsm
+load --int=timer $HOME/myexpos/spl/spl_progs/sample_timer_stage27.xsm
 load --module 7 $HOME/myexpos/spl/spl_progs/sample_mod7_stage26.xsm
-load --module 5 $HOME/myexpos/spl/spl_progs/sample_mod5_stage20.xsm
+load --module 6 $HOME/myexpos/spl/spl_progs/sample_mod6_stage27.xsm
+load --module 5 $HOME/myexpos/spl/spl_progs/sample_mod5_stage27.xsm
 load --int=4 $HOME/myexpos/spl/spl_progs/sample_int4_stage23.xsm
 load --int=5 $HOME/myexpos/spl/spl_progs/sample_int5_stage25.xsm
 load --int=6 $HOME/myexpos/spl/spl_progs/sample_int6_stage24.xsm
@@ -23,7 +24,7 @@ load --int=8 $HOME/myexpos/spl/spl_progs/sample_int8_stage24.xsm
 load --module 4 $HOME/myexpos/spl/spl_progs/sample_mod4_stage23.xsm
 load --module 0 $HOME/myexpos/spl/spl_progs/sample_mod0_stage24.xsm
 load --module 1 $HOME/myexpos/spl/spl_progs/sample_mod1_stage25.xsm
-load --module 2 $HOME/myexpos/spl/spl_progs/sample_mod2_stage25.xsm
+load --module 2 $HOME/myexpos/spl/spl_progs/sample_mod2_stage27.xsm
 load --module 3 $HOME/myexpos/spl/spl_progs/sample_mod3_stage25.xsm
 load --int=disk $HOME/myexpos/spl/spl_progs/disk_interrupt_handler_stage18.xsm
 load --shell $HOME/myexpos/expl/samples/shell1.xsm

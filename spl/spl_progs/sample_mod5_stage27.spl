@@ -1,0 +1,70 @@
+alias currPID R0;
+
+alias newPID R4;
+alias pte R3;
+
+currPID = [SYSTEM_STATUS_TABLE + 1];
+
+multipush(BP);
+
+alias process_table_entry R2;
+process_table_entry = PROCESS_TABLE + currPID*16;
+
+[process_table_entry + 12] = SP % 512;
+[process_table_entry + 14] = PTBR;
+[process_table_entry + 15] = PTLR;
+
+
+if ([SYSTEM_STATUS_TABLE + 5] != 0) then
+	if ([PROCESS_TABLE + (currPID * 16) + 4] == WAIT_DISK) then
+		newPID = 0;		
+	else
+		newPID = 15;
+	endif;
+else
+	pte = (currPID + 1) % 16;
+	while (pte != currPID) do
+		if (pte == 0) then
+			pte = pte + 1;
+			continue;
+		endif;
+
+		if ([PROCESS_TABLE + (pte * 16) + 6] == 0 && ([PROCESS_TABLE + pte*16 + 4] == READY || [PROCESS_TABLE + pte*16 + 4] == CREATED)) then
+			newPID = pte;
+			break;
+		endif;
+		pte = pte + 1;
+	endwhile;	
+	
+	if (pte == currPID) then
+		newPID = 0;
+	endif;
+
+endif;	
+
+alias userAreaPage R5;
+alias newProcessTableEntry R6;
+alias kptr R7;
+
+newProcessTableEntry = PROCESS_TABLE + newPID*16;
+userAreaPage = [newProcessTableEntry + 11];
+kptr = [newProcessTableEntry + 12];
+
+SP = userAreaPage * 512 + kptr;
+
+PTBR = [newProcessTableEntry + 14];
+PTLR = [newProcessTableEntry + 15];
+
+[SYSTEM_STATUS_TABLE + 1] = newPID;
+
+if ([newProcessTableEntry + 4] == CREATED) then
+    BP = [SP];
+	SP = [newProcessTableEntry + 13];
+	[newProcessTableEntry + 4] = RUNNING;
+	[newProcessTableEntry + 9] = 0;
+	ireturn;
+endif;
+
+[newProcessTableEntry + 4] = RUNNING;
+multipop(BP);
+return;
