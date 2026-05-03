@@ -1,21 +1,19 @@
+[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 11] * 512 - 1;
+backup;
+
 alias PID R0;
 PID = [SYSTEM_STATUS_TABLE + 1];
 
 alias pagingStatus R1;
 pagingStatus = [SYSTEM_STATUS_TABLE + 5];
 
-[PROCESS_TABLE + (PID * 16) + 13] = SP;
-// Setting SP to UArea Page number * 512 - 1
-SP = [PROCESS_TABLE + (PID * 16) + 11] * 512 - 1;
-backup;
-
 // swapper daemon check
 
-if (pagingStatus == 1 || pagingStatus == 0) then
+if (pagingStatus != 0) then
 		
-	if (PID == 15 && pagingStatus == 0) then
-		// 0 <--> swap out
-		
+	if (PID == 15 && pagingStatus == SWAP_OUT) then
+
 		multipush(R0, R1);
 
 		R1 = SWAP_OUT;
@@ -26,8 +24,7 @@ if (pagingStatus == 1 || pagingStatus == 0) then
 		multipop(R0, R1);
 	endif;
 
-	if (PID == 15 && pagingStatus == 1) then
-		// 1 <--> swap in
+	if (PID == 15 && pagingStatus == SWAP_IN) then
 
 		multipush(R0, R1);
 
@@ -39,14 +36,6 @@ if (pagingStatus == 1 || pagingStatus == 0) then
 		multipop(R0, R1);
 	endif;
 
-	// if (PID == 0) then
-	
-		// reaching here means swapping is ongoing, but
-		// swapper daemon is blocked because of disk operation
-		// so, idle is run now. skip to the scheduler part
-
-		
-	// endif;
 else
 
 	if ([SYSTEM_STATUS_TABLE + 2] < MEM_LOW) then
@@ -58,7 +47,7 @@ else
 		i = 0;
 	
 		while (i < MAX_PROC_NUM) do
-			if ([PROCESS_TABLE + (i * 16)] > MAX_TICK || [SYSTEM_STATUS_TABLE + 2] > MEM_HIGH) then
+			if ([PROCESS_TABLE + (i * 16) + 6] == 1 && ([PROCESS_TABLE + (i * 16)] > MAX_TICK || [SYSTEM_STATUS_TABLE + 2] > MEM_HIGH)) then
 				[SYSTEM_STATUS_TABLE + 5] = SWAP_IN;
 				break;
 			endif;
@@ -81,7 +70,9 @@ process_table_entry = PROCESS_TABLE + currentPID * 16;
 alias i R2;
 i = 0;
 while (i < 16) do
-	[PROCESS_TABLE + i*16] = [PROCESS_TABLE + i*16] + 1;
+	if ([PROCESS_TABLE + i*16 + 4] != TERMINATED) then
+		[PROCESS_TABLE + i*16] = [PROCESS_TABLE + i*16] + 1;
+	endif;
 	i = i + 1;
 endwhile;
 
@@ -94,4 +85,3 @@ SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13];
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 9] = 0;
 
 ireturn;
-

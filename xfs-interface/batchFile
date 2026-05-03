@@ -4,7 +4,7 @@ load --init $HOME/myexpos/expl/samples/login.xsm
 load --library $HOME/myexpos/expl/library.lib
 load --idle $HOME/myexpos/expl/samples/idle_process.xsm
 load --int=timer $HOME/myexpos/spl/spl_progs/sample_timer_stage27.xsm
-load --module 7 $HOME/myexpos/spl/spl_progs/sample_mod7_stage26.xsm
+load --module 7 $HOME/myexpos/spl/spl_progs/sample_mod7_stage27.xsm
 load --module 6 $HOME/myexpos/spl/spl_progs/sample_mod6_stage27.xsm
 load --module 5 $HOME/myexpos/spl/spl_progs/sample_mod5_stage27.xsm
 load --int=4 $HOME/myexpos/spl/spl_progs/sample_int4_stage23.xsm
@@ -38,5 +38,7 @@ load --exec $HOME/myexpos/expl/samples/ru.xsm
 load --exec $HOME/myexpos/expl/samples/create.xsm
 load --exec $HOME/myexpos/expl/samples/read1.xsm
 load --exec $HOME/myexpos/expl/samples/write1.xsm
+load --exec $HOME/myexpos/expl/samples/pid.xsm
+load --exec $HOME/myexpos/expl/samples/27_1.xsm
 load --exhandler $HOME/myexpos/spl/spl_progs/exception_handler_stage19.xsm
 exit
