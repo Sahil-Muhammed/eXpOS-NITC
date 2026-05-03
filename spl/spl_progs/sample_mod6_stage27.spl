@@ -18,7 +18,7 @@ if (function == SWAP_OUT) then
 		maxTick = -1;
 		i = 3;
 		while (i < 16) do
-			if ([PROCESS_TABLE + (i*16) + 4] != RUNNING && [PROCESS_TABLE + (i*16) + 4] != TERMINATED && [PROCESS_TABLE + (i*16) + 4] != ALLOCATED && [PROCESS_TABLE + (i*16) + 6] != 1) then
+			if ([PROCESS_TABLE + (i*16) + 4] == READY && [PROCESS_TABLE + (i*16) + 6] != 1) then
 				if ([PROCESS_TABLE + (i*16)] > maxTick) then
 					maxTick = [PROCESS_TABLE + (i*16)];
 					PID = i;
@@ -34,17 +34,20 @@ if (function == SWAP_OUT) then
 	endif;
 
 	[PROCESS_TABLE + (PID*16)] = 0;
-	PTBR = [PROCESS_TABLE + (PID*16) + 14];
+	alias page_table R6;
+	page_table = [PROCESS_TABLE + (PID*16) + 14];
 
 	i = 2;
 	while (i < 10) do
-		if ([PTBR + (2*i)] != -1) then
+		if ([page_table + (2*i)] != -1 && [page_table + (2*i) + 1] != "0000") then
 			if (i >= 4 && i <= 7) then
-				multipush(R2, R3);
+				multipush(R1, R2, R3, R6);
 				R1 = RELEASE_PAGE;
-				R2 = [PTBR + (2*i)];
+				R2 = [page_table + (2*i)];
 				call MEMORY_MANAGER;
-				multipop(R2, R3);
+				multipop(R1, R2, R3, R6);
+				[page_table + (2*i)] = -1;
+				[page_table + (2*i) + 1] = "0000";
 			else
 				alias skip R5;
 				skip = 0;
@@ -52,11 +55,11 @@ if (function == SWAP_OUT) then
 					R4 = 0;
 					while (R4 < 16) do
 						if (R4 != PID) then
-							if ([PAGE_TABLE_BASE + (R4*20) + 4] == [PTBR + (2*i)] && [PAGE_TABLE_BASE + (R4*20) + 5] != "0000") then
+							if ([PAGE_TABLE_BASE + (R4*20) + 4] == [page_table + (2*i)] && [PAGE_TABLE_BASE + (R4*20) + 5] != "0000") then
 								skip = 1;
 								break;
 							endif;
-							if ([PAGE_TABLE_BASE + (R4*20) + 6] == [PTBR + (2*i)] && [PAGE_TABLE_BASE + (R4*20) + 7] != "0000") then
+							if ([PAGE_TABLE_BASE + (R4*20) + 6] == [page_table + (2*i)] && [PAGE_TABLE_BASE + (R4*20) + 7] != "0000") then
 								skip = 1;
 								break;
 							endif;
@@ -65,27 +68,27 @@ if (function == SWAP_OUT) then
 					endwhile;
 				endif;
 				if (skip != 1) then
-					multipush(R2, R3);
+					multipush(R1, R2, R3, R6);
 					R1 = GET_SWAP_BLOCK;
 					call MEMORY_MANAGER;
-					multipop(R2, R3);
+					multipop(R1, R2, R3, R6);
 					[DISK_MAP_TABLE + (PID*10) + i] = R0;
-					multipush(R0, R2, R3);
+					multipush(R1, R0, R2, R3, R6);
 					R1 = DISK_STORE;
 					R4 = R0;
-					R3 = [PTBR + (2*i)];
+					R3 = [page_table + (2*i)];
 					R2 = [SYSTEM_STATUS_TABLE + 1];
 					call DEVICE_MANAGER;
-					multipop(R0, R2, R3);
-					multipush(R2, R3);
+					multipop(R1, R0, R2, R3, R6);
+					multipush(R1, R2, R3, R6);
 					R1 = RELEASE_PAGE;
-					R2 = [PTBR + (2*i)];
+					R2 = [page_table + (2*i)];
 					call MEMORY_MANAGER;
-					multipop(R2, R3);
+					multipop(R1, R2, R3, R6);
+					[page_table + (2*i)] = -1;
+					[page_table + (2*i) + 1] = "0000";
 				endif;
 			endif;
-			[PTBR + (2*i)] = -1;
-			[PTBR + (2*i) + 1] = "0000";
 		endif;
 		i = i + 1;
 	endwhile;
@@ -93,7 +96,6 @@ if (function == SWAP_OUT) then
 	[PROCESS_TABLE + (PID*16) + 6] = 1;
 	[SYSTEM_STATUS_TABLE + 4] = [SYSTEM_STATUS_TABLE + 4] + 1;
 	[SYSTEM_STATUS_TABLE + 5] = 0;
-	PTBR = PAGE_TABLE_BASE + 300;
 	return;
 endif;
 
@@ -118,7 +120,6 @@ if (function == SWAP_IN) then
 	endif;
 
 	[PROCESS_TABLE + (PID*16)] = 0;
-	PTBR = [PROCESS_TABLE + (PID*16) + 14];
 
 	i = 2;
 	while (i < 10) do
@@ -127,25 +128,27 @@ if (function == SWAP_IN) then
 			continue;
 		endif;
 		if ([DISK_MAP_TABLE + (PID*10) + i] != -1) then
-			multipush(R2, R3);
+			multipush(R1, R2, R3);
 			R1 = GET_FREE_PAGE;
 			call MEMORY_MANAGER;
-			multipop(R2, R3);
-			[PTBR + (2*i)] = R0;
-			[PTBR + (2*i) + 1] = "0110";
-			multipush(R0, R2, R3);
+			multipop(R1, R2, R3);
+			alias page_table R5;
+			page_table = [PROCESS_TABLE + (PID*16) + 14];
+			[page_table + (2*i)] = R0;
+			[page_table + (2*i) + 1] = "0110";
+			multipush(R1, R0, R2, R3, R5);
 			R1 = DISK_LOAD;
 			R4 = [DISK_MAP_TABLE + (PID*10) + i];
 			R2 = [SYSTEM_STATUS_TABLE + 1];
 			R3 = R0;
 			call DEVICE_MANAGER;
-			multipop(R0, R2, R3);
-			multipush(R2, R3);
+			multipop(R1, R0, R2, R3, R5);
+			multipush(R1, R2, R3);
 			R1 = RELEASE_BLOCK;
 			R3 = PID;
 			R2 = [DISK_MAP_TABLE + (PID*10) + i];
 			call MEMORY_MANAGER;
-			multipop(R2, R3);
+			multipop(R1, R2, R3);
 			[DISK_MAP_TABLE + (PID*10) + i] = -1;
 		endif;
 		i = i + 1;
@@ -154,6 +157,5 @@ if (function == SWAP_IN) then
 	[PROCESS_TABLE + (PID*16) + 6] = 0;
 	[SYSTEM_STATUS_TABLE + 4] = [SYSTEM_STATUS_TABLE + 4] - 1;
 	[SYSTEM_STATUS_TABLE + 5] = 0;
-	PTBR = PAGE_TABLE_BASE + 300;
 endif;
 return;
